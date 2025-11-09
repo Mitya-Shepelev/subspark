@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+CLAUDE.md
+DEPLOYMENT.md
+README.md
+*.md
+
+# Local development
+.env
+.env.local
+.env.*.local
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Logs
+*.log
+error_log
+**/error_log
+
+# User uploads (will be mounted as volume)
+uploads/avatars/20*/
+uploads/covers/20*/
+uploads/files/*
+uploads/images/*
+uploads/pixel/*
+uploads/px/*
+uploads/reels/*
+uploads/spImages/*
+uploads/videos/*
+uploads/xvideos/*
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Scripts
+translate_ru.py
+*.py
+
+# Docker
+docker-compose.override.yml

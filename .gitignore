@@ -36,6 +36,10 @@ error_log
 .env
 .env.local
 .env.*.local
+.env.portainer
+
+# Docker
+docker-compose.override.yml
 
 # IDE and editor files
 .vscode/
