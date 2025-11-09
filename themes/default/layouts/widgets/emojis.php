@@ -9,7 +9,7 @@
             ?>
         </div>
         <div class="gestures_and_bodyparts">
-          <div class="emTitle"><?php echo iN_HelpSecure($LANG['gestures_and_bodyparts']);?></div>
+          <div class="emTitle"><?php echo iN_HelpSecure($LANG['gestures_and_bodyparts'] ?? 'Gestures & Body Parts');?></div>
             <?php
             foreach ($gesturesAndBodyParts as $fitem) {
                 echo '<div class="'.$importClass.' transition" data-emoji="'.$fitem.'" '.$importID.'>'.$fitem.'</div>';

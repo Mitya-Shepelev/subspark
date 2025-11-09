@@ -16,7 +16,7 @@ echo html_entity_decode($pPinStatus ?? ''); ?>
                 <img src="<?php echo iN_HelpSecure($userPostOwnerUserAvatar); ?>"/>
                 <!---->
                 <div class="i_thanks_bubble_cont tip_<?php echo iN_HelpSecure($userPostID); ?>">
-                    <div class="i_bubble"><?php echo iN_HelpSecure($userTextForPostTip); ?></div>
+                    <div class="i_bubble"><?php echo iN_HelpSecure($userTextForPostTip ?? ''); ?></div>
                 </div>
                 <!---->
             </div>
