@@ -47,12 +47,15 @@ services:
     image: ghcr.io/mitya-shepelev/subspark:latest
     container_name: subspark-app
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "8080:80"  # Можете изменить 8080 на любой свободный порт
     pull_policy: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
-      - DB_HOST=${DB_HOST:-localhost}
+      - DB_HOST=${DB_HOST:-host.docker.internal}
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -68,6 +71,11 @@ volumes:
   uploads_data:
     driver: local
 ```
+
+**Важно:** Приложение будет доступно на порту **8080** (или другом, если измените).
+- Если порт 80 занят на сервере - используйте 8080
+- Для доступа: `http://ваш_сервер:8080`
+- Можно настроить nginx на хосте как reverse proxy для порта 80 → 8080
 
 ### Шаг 4: Добавьте переменные окружения
 
@@ -120,3 +128,43 @@ git push origin main
 ✅ Быстрое скачивание образа (10-30 сек)
 ✅ Версионирование образов (latest + SHA)
 ✅ Просто обновлять через Portainer UI
+
+---
+
+## 🔧 Настройка Nginx Reverse Proxy (опционально)
+
+Если хотите чтобы приложение было доступно на стандартном порту 80:
+
+### 1. Создайте конфигурацию nginx на хосте
+
+```bash
+# Создайте файл /etc/nginx/sites-available/subspark
+server {
+    listen 80;
+    server_name ваш_домен.ru;  # или IP сервера
+
+    client_max_body_size 128M;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+### 2. Активируйте конфигурацию
+
+```bash
+ln -s /etc/nginx/sites-available/subspark /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+```
+
+Теперь приложение доступно на `http://ваш_домен.ru` (порт 80)!
