@@ -177,7 +177,6 @@ $sitePostCode = isset($inc['post_code']) ? $inc['post_code'] : NULL;
 $siteVat = isset($inc['vat']) ? $inc['vat'] : NULL;
 
 // General system settings
-$mycd = isset($inc['mycd']) ? $inc['mycd'] : '1';
 $normalUserCanPost = isset($inc['normal_user_can_post']) ? $inc['normal_user_can_post'] : NULL;
 $giphyKey = isset($inc['giphy_api_key']) ? $inc['giphy_api_key'] : NULL;
 $freeLiveTime = isset($inc['free_live_time']) ? $inc['free_live_time'] : NULL;
@@ -250,7 +249,6 @@ $digitalOceanStatus = isset($inc['ocean_status']) ? $inc['ocean_status'] : NULL;
 $oceankey = isset($inc['ocean_key']) ? $inc['ocean_key'] : NULL;
 $oceansecret = isset($inc['ocean_secret']) ? $inc['ocean_secret'] : NULL;
 $oceanspace_name = isset($inc['ocean_space_name']) ? $inc['ocean_space_name'] : NULL;
-$mycdStatus = isset($inc['mycd_status']) ? $inc['mycd_status'] : NULL;
 $oceanregion = isset($inc['ocean_region']) ? $inc['ocean_region'] : NULL;
 $digitalOceanPublicBase = isset($inc['ocean_public_base']) ? $inc['ocean_public_base'] : NULL;
 
@@ -385,9 +383,6 @@ $ffmpegPath   = isset($inc['ffmpeg_path']) ? $inc['ffmpeg_path'] : NULL;
 $ffprobePath  = isset($inc['ffmpeg_probe']) ? $inc['ffmpeg_probe'] : NULL; // optional, may be null if not set
 $ffmpegStatus = $inc['ffmpeg_status'];
 $pixelSize = $inc['pixelSize'];
-
-// Dynamic reference code encryption/validation
-$inD = isset($inc['mycd']) ? $inc['mycd'] : '1';
 
 // General content listing preferences
 $showingNumberOfPost = $inc['showingNumberOfPost'];
@@ -596,17 +591,6 @@ function getExtension($str) {
     return $ext;
 }
 
-/**
- * Validate encryption key (obfuscated license or dynamic ID)
- * Redirects to obfuscated path if invalid.
- */
-function inSub($mycd, $mycdStatus) {
-    $check = preg_match('/(.*)-(.*)-(.*)-(.*)-(.*)/', $mycd);
-    if ($check == 0 && ($mycdStatus == 1 || $mycdStatus == '' || empty($mycdStatus))) {
-        header('Location: ' . route_url(base64_decode('YmVsZWdhbA==')));
-        exit();
-    }
-}
 
 /**
  * Convert bytes to MB with formatting
