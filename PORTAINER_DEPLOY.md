@@ -164,10 +164,22 @@ git push origin main
 
 4. **Advanced:**
    ```nginx
+   # Increase upload size limit to 128MB
    client_max_body_size 128M;
+   client_body_buffer_size 128k;
+   client_body_timeout 300s;
+
+   # Proxy timeouts for large uploads
+   proxy_connect_timeout 300s;
+   proxy_send_timeout 300s;
+   proxy_read_timeout 300s;
    ```
 
 5. **Save**
+
+⚠️ **ВАЖНО для загрузки файлов:**
+   - Без этих настроек в Nginx Proxy Manager загружаться будут только маленькие файлы!
+   - По умолчанию лимит составляет всего 1MB
 
 Теперь приложение доступно на `https://subspark.ru`!
 
