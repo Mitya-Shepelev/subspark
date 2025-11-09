@@ -1,1 +1,55 @@
+# Claude Code documentation (local only)
 /CLAUDE.md
+
+# User uploads (should not be in repository)
+uploads/*
+!uploads/.htaccess
+!uploads/index.php
+!uploads/avatars/
+!uploads/covers/
+!uploads/avatars/avatar_*.png
+!uploads/avatars/d-avatar.jpg
+!uploads/avatars/f-avatar.jpg
+!uploads/avatars/g-couple.png
+!uploads/avatars/no_gender.png
+!uploads/avatars/index.html
+!uploads/covers/*.png
+!uploads/covers/default.jpg
+!uploads/covers/index.html
+uploads/avatars/20*/
+uploads/covers/20*/
+uploads/files/
+uploads/images/
+uploads/pixel/
+uploads/px/
+uploads/reels/
+uploads/spImages/
+uploads/videos/
+uploads/xvideos/
+
+# Error logs
+error_log
+**/error_log
+*.log
+
+# Environment and local config
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# OS files
+Thumbs.db
+.Spotlight-V100
+.Trashes
