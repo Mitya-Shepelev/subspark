@@ -55,6 +55,12 @@ RUN { \
         echo 'expose_php=Off'; \
     } > /usr/local/etc/php/conf.d/uploads.ini
 
+# Configure PHP-FPM to pass environment variables
+RUN { \
+        echo '[www]'; \
+        echo 'clear_env = no'; \
+    } > /usr/local/etc/php-fpm.d/zz-docker.conf
+
 # Create nginx config
 RUN mkdir -p /etc/nginx/http.d
 COPY docker/nginx/subspark.conf /etc/nginx/http.d/default.conf
