@@ -1199,7 +1199,7 @@ public function iN_GetUploadedFilesIDs($uid, $imageName) {
             return $_SERVER['HTTP_FORWARDED'];
         }
 
-        return $_SERVER['REMOTE_ADDR'];
+        return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 	public function iN_getHost($url) {
 		$parseUrl = parse_url(trim($url));
