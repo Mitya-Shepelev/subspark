@@ -38,6 +38,15 @@ if (file_exists(__DIR__ . '/includes/vendor/autoload.php')) {
     exit(1);
 }
 
+// Set up global variables for object_storage.php
+$GLOBALS['selectelStatus'] = getenv('SELECTEL_STATUS') ?: '0';
+$GLOBALS['selectelBucket'] = getenv('SELECTEL_BUCKET') ?: null;
+$GLOBALS['selectelRegion'] = getenv('SELECTEL_REGION') ?: 'ru-1';
+$GLOBALS['selectelKey'] = getenv('SELECTEL_KEY') ?: null;
+$GLOBALS['selectelSecret'] = getenv('SELECTEL_SECRET') ?: null;
+$GLOBALS['selectelEndpoint'] = getenv('SELECTEL_ENDPOINT') ?: 'https://s3.ru-1.storage.selcloud.ru';
+$GLOBALS['selectelPublicBase'] = getenv('SELECTEL_PUBLIC_BASE') ?: null;
+
 // Load storage functions
 require_once __DIR__ . '/includes/object_storage.php';
 
@@ -55,6 +64,35 @@ echo "  Public Base: " . ($config['public_base'] ?? 'NOT SET') . "\n";
 $client = storage_client();
 if ($client) {
     echo "\n✅ S3 Client initialized successfully\n";
+
+    // Try to test upload capability (create a test file)
+    if ($config['provider'] !== 'local') {
+        $testFile = sys_get_temp_dir() . '/test_' . time() . '.txt';
+        file_put_contents($testFile, "Test upload from SubSpark at " . date('Y-m-d H:i:s'));
+
+        echo "\nTesting upload capability...\n";
+        $testKey = 'test/check_' . time() . '.txt';
+
+        try {
+            $uploadResult = storage_upload($testFile, $testKey, true);
+            if ($uploadResult) {
+                echo "✅ Test upload successful!\n";
+                echo "   Key: {$testKey}\n";
+                echo "   URL: " . storage_public_url($testKey) . "\n";
+
+                // Try to delete test file
+                if (storage_delete($testKey)) {
+                    echo "✅ Test file deleted successfully\n";
+                }
+            } else {
+                echo "❌ Test upload failed (check error logs)\n";
+            }
+        } catch (Exception $e) {
+            echo "❌ Upload test error: " . $e->getMessage() . "\n";
+        }
+
+        @unlink($testFile);
+    }
 } else {
     echo "\n❌ Failed to initialize S3 Client\n";
     exit(1);
