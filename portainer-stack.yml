@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: https://github.com/Mitya-Shepelev/subspark.git#main
-      dockerfile: Dockerfile
+    image: subspark:latest
     container_name: subspark-app
     restart: unless-stopped
     network_mode: host
