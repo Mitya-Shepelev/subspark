@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: https://github.com/Mitya-Shepelev/subspark.git#main
+      dockerfile: Dockerfile
+    container_name: subspark-app
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - uploads_data:/var/www/html/uploads
+    environment:
+      # Database configuration (external MySQL)
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_NAME=${DB_NAME:-subspark}
+      - DB_USER=${DB_USER:-subspark}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=${DB_PORT:-3306}
+
+      # Selectel S3 Storage (optional)
+      - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
+      - SELECTEL_BUCKET=${SELECTEL_BUCKET:-}
+      - SELECTEL_REGION=${SELECTEL_REGION:-ru-1}
+      - SELECTEL_KEY=${SELECTEL_KEY:-}
+      - SELECTEL_SECRET=${SELECTEL_SECRET:-}
+      - SELECTEL_ENDPOINT=${SELECTEL_ENDPOINT:-https://s3.ru-1.storage.selcloud.ru}
+      - SELECTEL_PUBLIC_BASE=${SELECTEL_PUBLIC_BASE:-}
+
+      # MinIO Storage (optional)
+      - MINIO_STATUS=${MINIO_STATUS:-0}
+      - MINIO_BUCKET=${MINIO_BUCKET:-}
+      - MINIO_REGION=${MINIO_REGION:-us-east-1}
+      - MINIO_KEY=${MINIO_KEY:-}
+      - MINIO_SECRET=${MINIO_SECRET:-}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-}
+      - MINIO_PUBLIC_BASE=${MINIO_PUBLIC_BASE:-}
+
+      # S3 Storage (optional)
+      - S3_STATUS=${S3_STATUS:-0}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-}
+      - S3_KEY=${S3_KEY:-}
+      - S3_SECRET=${S3_SECRET:-}
+      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-}
+
+      # Wasabi Storage (optional)
+      - WASABI_STATUS=${WASABI_STATUS:-0}
+      - WASABI_BUCKET=${WASABI_BUCKET:-}
+      - WASABI_REGION=${WASABI_REGION:-}
+      - WASABI_KEY=${WASABI_KEY:-}
+      - WASABI_SECRET=${WASABI_SECRET:-}
+      - WASABI_PUBLIC_BASE=${WASABI_PUBLIC_BASE:-}
+
+      # DigitalOcean Spaces (optional)
+      - SPACES_STATUS=${SPACES_STATUS:-0}
+      - SPACES_NAME=${SPACES_NAME:-}
+      - SPACES_REGION=${SPACES_REGION:-}
+      - SPACES_KEY=${SPACES_KEY:-}
+      - SPACES_SECRET=${SPACES_SECRET:-}
+      - SPACES_PUBLIC_BASE=${SPACES_PUBLIC_BASE:-}
+
+volumes:
+  uploads_data:
+    driver: local
