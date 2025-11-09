@@ -129,7 +129,10 @@ class iN_UPDATES {
 			if (!empty($loginWith) && !is_numeric($rowAvatar)) {
 				$data = $rowAvatar;
 			} else {
-				if ($s3Status == 1) {
+				// Use unified storage_public_url if available
+				if (function_exists('storage_public_url') && $avatarPath) {
+					$data = storage_public_url($avatarPath);
+				} else if ($s3Status == 1) {
 					$data = 'https://' . $s3['s3_bucket'] . '.s3.' . $s3['s3_region'] . '.amazonaws.com/' . $avatarPath;
 				}else if($wasStatus == 1){
 					$data = 'https://' . $s3['was_bucket'] . '.s3.' . $s3['was_region'] . '.wasabisys.com/' . $avatarPath;
@@ -170,7 +173,10 @@ class iN_UPDATES {
 		$userGender = isset($row['user_gender']) ? $row['user_gender'] : NULL;
 		$rowCover = isset($row['user_cover']) ? $row['user_cover'] : NULL;
 		if (!empty($rowCover)) {
-			if ($s3Status == 1) {
+			// Use unified storage_public_url if available
+			if (function_exists('storage_public_url') && $coverPath) {
+				$data = storage_public_url($coverPath);
+			} else if ($s3Status == 1) {
 				$data = 'https://' . $s3['s3_bucket'] . '.s3.' . $s3['s3_region'] . '.amazonaws.com/' . $coverPath;
 			}else if($wasStatus == 1){
 				$data = 'https://' . $s3['was_bucket'] . '.s3.' . $s3['was_region'] . '.wasabisys.com/' . $coverPath;
