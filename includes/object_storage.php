@@ -29,11 +29,13 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 /** Return the active provider key: selectel|s3|wasabi|spaces|minio|local */
 function storage_active_provider(): string {
-    $s3Status = $GLOBALS['s3Status'] ?? '0';
-    $WasStatus = $GLOBALS['WasStatus'] ?? '0';
-    $digitalOceanStatus = $GLOBALS['digitalOceanStatus'] ?? '0';
-    $minioStatus = $GLOBALS['minioStatus'] ?? '0';
-    $selectelStatus = $GLOBALS['selectelStatus'] ?? '0';
+    // Prefer environment variables (Docker-friendly), fallback to $GLOBALS
+    $selectelStatus = getenv('SELECTEL_STATUS') ?: ($GLOBALS['selectelStatus'] ?? '0');
+    $minioStatus = getenv('MINIO_STATUS') ?: ($GLOBALS['minioStatus'] ?? '0');
+    $s3Status = getenv('S3_STATUS') ?: ($GLOBALS['s3Status'] ?? '0');
+    $digitalOceanStatus = getenv('SPACES_STATUS') ?: ($GLOBALS['digitalOceanStatus'] ?? '0');
+    $WasStatus = getenv('WASABI_STATUS') ?: ($GLOBALS['WasStatus'] ?? '0');
+
     // Keep legacy precedence: S3 > Spaces > Wasabi
     // Prefer MinIO and Selectel when explicitly enabled
     if ($selectelStatus == '1') return 'selectel';
