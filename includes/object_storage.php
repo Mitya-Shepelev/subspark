@@ -53,7 +53,7 @@ function storage_provider_config(): array {
             $region   = getenv('SELECTEL_REGION')   ?: ($GLOBALS['selectelRegion'] ?? 'ru-1');
             $key      = getenv('SELECTEL_KEY')      ?: ($GLOBALS['selectelKey'] ?? null);
             $secret   = getenv('SELECTEL_SECRET')   ?: ($GLOBALS['selectelSecret'] ?? null);
-            $endpoint = getenv('SELECTEL_ENDPOINT') ?: ($GLOBALS['selectelEndpoint'] ?? 'https://s3.selcdn.ru');
+            $endpoint = getenv('SELECTEL_ENDPOINT') ?: ($GLOBALS['selectelEndpoint'] ?? 'https://s3.ru-1.storage.selcloud.ru');
             // Ensure endpoint has protocol
             if ($endpoint && !preg_match('/^https?:\/\//', $endpoint)) {
                 $endpoint = 'https://' . $endpoint;

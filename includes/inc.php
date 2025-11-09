@@ -490,7 +490,7 @@ $selectelBucket   = isset($inc['selectel_bucket'])      ? $inc['selectel_bucket'
 $selectelRegion   = isset($inc['selectel_region'])      ? $inc['selectel_region']      : 'ru-1';
 $selectelKey      = isset($inc['selectel_key'])         ? $inc['selectel_key']         : NULL;
 $selectelSecret   = isset($inc['selectel_secret_key'])  ? $inc['selectel_secret_key']  : NULL;
-$selectelEndpoint = isset($inc['selectel_endpoint'])    ? $inc['selectel_endpoint']    : 'https://s3.selcdn.ru';
+$selectelEndpoint = isset($inc['selectel_endpoint'])    ? $inc['selectel_endpoint']    : 'https://s3.ru-1.storage.selcloud.ru';
 $selectelPublicBase = isset($inc['selectel_public_base']) ? $inc['selectel_public_base'] : NULL;
 
 // Environment overrides (developer-friendly)

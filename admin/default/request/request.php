@@ -449,7 +449,7 @@ if (isset($_POST['f']) && $logedIn == '1' && $userType == '2') {
 	/*Update Selectel S3 Storage Details*/
 	if ($type == 'SelectelSettings') {
 		$selectelStatus     = isset($_POST['selectelStatus']) ? $iN->iN_Secure($_POST['selectelStatus']) : '0';
-		$selectelEndpoint   = isset($_POST['selectelEndpoint']) ? trim($iN->iN_Secure($_POST['selectelEndpoint'])) : 'https://s3.selcdn.ru';
+		$selectelEndpoint   = isset($_POST['selectelEndpoint']) ? trim($iN->iN_Secure($_POST['selectelEndpoint'])) : 'https://s3.ru-1.storage.selcloud.ru';
 		$selectelRegion     = isset($_POST['selectelRegion']) ? trim($iN->iN_Secure($_POST['selectelRegion'])) : 'ru-1';
 		$selectelBucket     = isset($_POST['selectelBucket']) ? trim($iN->iN_Secure($_POST['selectelBucket'])) : '';
 		$selectelKey        = isset($_POST['selectelKey']) ? trim($iN->iN_Secure($_POST['selectelKey'])) : '';
