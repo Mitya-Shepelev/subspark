@@ -2298,29 +2298,39 @@ class TimeAgo {
 	/** Tamplates for language expressions stored in array
 	 * @var Array
 	 */
-	public static $string = array(
-		"now" => "now",
-		"second" => "a second ago",
-		"seconds" => "%d seconds ago",
-		"minute" => "a minute ago",
-		"minutes" => "%d minutes ago",
-		"hour" => "about an hour ago",
-		"hours" => "%d hours ago",
-		"yesterday" => "yesterday",
-		"days" => "%d days ago",
-		"on" => "on %s",
-		"week" => "week ago",
-		"weeks" => "%d weeks ago",
-		"month" => "a month ago",
-		"months" => "%d months ago",
-		"year" => "a year ago",
-		"years" => "%d years ago",
+
+    public static $string = array(
+		"now"      => "только что",
+		"second"   => "секунду назад",
+		"seconds"  => "%d секунд назад",
+		"minute"   => "минуту назад",
+		"minutes"  => "%d минут назад",
+		"hour"     => "около часа назад",
+		"hours"    => "%d часов назад",
+		"yesterday"=> "вчера",
+		"days"     => "%d дней назад",
+		"on"       => "в %s",
+		"week"     => "неделю назад",
+		"weeks"    => "%d недель назад",
+		"month"    => "месяц назад",
+		"months"   => "%d месяцев назад",
+		"year"     => "год назад",
+		"years"    => "%d лет назад",
 	);
+
 
 	/** String days of week stored in array (0 is Sunday, 6 is Saturday)
 	 *  @var Array
 	 */
-	public static $weekDays = array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
+	public static $weekDays = array(
+"Sunday"    => "Воскресенье",
+"Monday"    => "Понедельник",
+"Tuesday"   => "Вторник",
+"Wednesday" => "Среда",
+"Thursday"  => "Четверг",
+"Friday"    => "Пятница",
+"Saturday"  => "Суббота",
+);
 
 	/** Function to calcuate elapsed time (Check link for valid formats)
 	 * @param 	String 	$time			- Time
