@@ -8,13 +8,14 @@ services:
     ports:
       - "${APP_PORT:-8082}:80"
     pull_policy: always
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - nginx-proxy-manager_default
+      - mysql-8_default
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
       # Database configuration (external MySQL)
-      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_HOST=${DB_HOST:-mysql-8}
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -65,3 +66,9 @@ services:
 volumes:
   uploads_data:
     driver: local
+
+networks:
+  nginx-proxy-manager_default:
+    external: true
+  mysql-8_default:
+    external: true

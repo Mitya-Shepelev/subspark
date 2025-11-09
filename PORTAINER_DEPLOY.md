@@ -48,14 +48,15 @@ services:
     container_name: subspark-app
     restart: unless-stopped
     ports:
-      - "8080:80"  # Можете изменить 8080 на любой свободный порт
+      - "8082:80"  # Опционально, для прямого доступа
     pull_policy: always
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - nginx-proxy-manager_default  # Для доступа из Nginx Proxy Manager
+      - mysql-8_default              # Для доступа к MySQL
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
-      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DB_HOST=${DB_HOST:-mysql-8}  # Имя контейнера MySQL в сети
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -70,12 +71,18 @@ services:
 volumes:
   uploads_data:
     driver: local
+
+networks:
+  nginx-proxy-manager_default:
+    external: true
+  mysql-8_default:
+    external: true
 ```
 
-**Важно:** Приложение будет доступно на порту **8080** (или другом, если измените).
-- Если порт 80 занят на сервере - используйте 8080
-- Для доступа: `http://ваш_сервер:8080`
-- Можно настроить nginx на хосте как reverse proxy для порта 80 → 8080
+**Важно:**
+- Контейнер подключен к сетям `nginx-proxy-manager_default` и `mysql-8_default`
+- В Nginx Proxy Manager используйте: `http://subspark-app:80`
+- DB_HOST указывает на контейнер MySQL (по умолчанию `mysql-8`)
 
 ### Шаг 4: Добавьте переменные окружения
 
@@ -131,9 +138,39 @@ git push origin main
 
 ---
 
-## 🔧 Настройка Nginx Reverse Proxy (опционально)
+## 🔧 Настройка Nginx Proxy Manager
 
-Если хотите чтобы приложение было доступно на стандартном порту 80:
+Если вы используете Nginx Proxy Manager (рекомендуется):
+
+### 1. Создайте Proxy Host
+
+1. Откройте **Nginx Proxy Manager** → **Proxy Hosts** → **Add Proxy Host**
+2. **Details:**
+   - Domain Names: `subspark.ru` (ваш домен)
+   - Scheme: `http`
+   - Forward Hostname/IP: `subspark-app`
+   - Forward Port: `80`
+   - ✅ Cache Assets
+   - ✅ Block Common Exploits
+   - ✅ Websockets Support
+
+3. **SSL:**
+   - ✅ SSL Certificate (Let's Encrypt)
+   - ✅ Force SSL
+   - ✅ HTTP/2 Support
+
+4. **Advanced:**
+   ```nginx
+   client_max_body_size 128M;
+   ```
+
+5. **Save**
+
+Теперь приложение доступно на `https://subspark.ru`!
+
+---
+
+## 🔧 Альтернатива: Nginx на хосте (если НЕ используете Nginx Proxy Manager)
 
 ### 1. Создайте конфигурацию nginx на хосте
 
@@ -141,12 +178,12 @@ git push origin main
 # Создайте файл /etc/nginx/sites-available/subspark
 server {
     listen 80;
-    server_name ваш_домен.ru;  # или IP сервера
+    server_name ваш_домен.ru;
 
     client_max_body_size 128M;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:8082;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -166,5 +203,3 @@ ln -s /etc/nginx/sites-available/subspark /etc/nginx/sites-enabled/
 nginx -t
 systemctl reload nginx
 ```
-
-Теперь приложение доступно на `http://ваш_домен.ru` (порт 80)!
