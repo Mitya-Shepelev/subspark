@@ -5,13 +5,12 @@ services:
     build: .
     container_name: subspark-app
     restart: unless-stopped
-    ports:
-      - "80:80"
+    network_mode: host
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
-      # Database configuration
-      - DB_HOST=${DB_HOST:-db}
+      # Database configuration (external MySQL)
+      - DB_HOST=${DB_HOST:-localhost}
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -58,32 +57,7 @@ services:
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
       - SPACES_PUBLIC_BASE=${SPACES_PUBLIC_BASE}
-    depends_on:
-      - db
-    networks:
-      - subspark
-
-  db:
-    image: mysql:8.0
-    container_name: subspark-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME:-subspark}
-      MYSQL_USER: ${DB_USER:-subspark}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-    networks:
-      - subspark
 
 volumes:
   uploads_data:
     driver: local
-  db_data:
-    driver: local
-
-networks:
-  subspark:
-    driver: bridge
