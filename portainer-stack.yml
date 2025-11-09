@@ -15,7 +15,7 @@ services:
       - uploads_data:/var/www/html/uploads
     environment:
       # Database configuration (external MySQL)
-      - DB_HOST=${DB_HOST:-mysql-8}
+      - DB_HOST=${DB_HOST:-mysql-8-mysql_db-1}
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}

@@ -56,7 +56,7 @@ services:
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
-      - DB_HOST=${DB_HOST:-mysql-8}  # Имя контейнера MySQL в сети
+      - DB_HOST=${DB_HOST:-mysql-8-mysql_db-1}  # Имя контейнера MySQL в сети
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -82,7 +82,7 @@ networks:
 **Важно:**
 - Контейнер подключен к сетям `nginx-proxy-manager_default` и `mysql-8_default`
 - В Nginx Proxy Manager используйте: `http://subspark-app:80`
-- DB_HOST указывает на контейнер MySQL (по умолчанию `mysql-8`)
+- DB_HOST указывает на контейнер MySQL (по умолчанию `mysql-8-mysql_db-1`)
 
 ### Шаг 4: Добавьте переменные окружения
 
