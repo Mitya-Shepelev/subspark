@@ -57,6 +57,10 @@
     // Only handle GET requests
     if (req.method !== 'GET') { return; }
 
+    // Ignore non-http(s) requests (browser extensions, data URIs, etc)
+    const url = new URL(req.url);
+    if (!url.protocol.startsWith('http')) { return; }
+
     // Handle navigation requests (HTML pages)
     if (req.mode === 'navigate') {
       event.respondWith((async () => {
@@ -65,7 +69,12 @@
           if (preload) return preload;
           const networkResp = await fetch(req);
           const cache = await caches.open(RUNTIME_CACHE);
-          cache.put(req, networkResp.clone());
+          try {
+            cache.put(req, networkResp.clone());
+          } catch (err) {
+            // Ignore cache errors
+            console.warn('Cache put failed:', err.message);
+          }
           return networkResp;
         } catch (err) {
           const cached = await caches.match(req);
@@ -87,7 +96,12 @@
         const cached = await cache.match(req);
         const networkFetch = fetch(req).then((resp) => {
           if (resp && resp.status === 200) {
-            cache.put(req, resp.clone());
+            try {
+              cache.put(req, resp.clone());
+            } catch (err) {
+              // Ignore cache errors (e.g., unsupported request schemes)
+              console.warn('Cache put failed:', err.message);
+            }
           }
           return resp;
         }).catch(() => undefined);
@@ -105,7 +119,12 @@
         try {
           const resp = await fetch(req);
           if (resp && resp.status === 200) {
-            cache.put(req, resp.clone());
+            try {
+              cache.put(req, resp.clone());
+            } catch (err) {
+              // Ignore cache errors
+              console.warn('Cache put failed:', err.message);
+            }
           }
           return resp;
         } catch (err) {
