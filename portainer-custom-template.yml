@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/mitya-shepelev/subspark:latest
+    container_name: subspark-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8001}:80"
+    environment:
+      DB_SERVER: ${DB_SERVER:-mysql-8}
+      DB_USERNAME: ${DB_USERNAME:-subspark_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-subspark}
+      APP_ENV: ${APP_ENV:-production}
+      APP_URL: ${APP_URL}
+    volumes:
+      - uploads_data:/var/www/html/uploads
+    networks:
+      - mysql-8_default
+      - nginx-proxy-manager_default
+
+volumes:
+  uploads_data:
+    driver: local
+
+networks:
+  mysql-8_default:
+    external: true
+  nginx-proxy-manager_default:
+    external: true
