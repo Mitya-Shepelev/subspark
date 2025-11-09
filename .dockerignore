@@ -51,5 +51,15 @@ yarn-error.log
 translate_ru.py
 *.py
 
-# Docker
+# Docker (должны быть в Git, но НЕ в образе)
+Dockerfile
+docker-compose.yml
+docker-compose.portainer.yml
 docker-compose.override.yml
+.dockerignore
+docker/
+
+# Environment examples (должны быть в Git, но НЕ в образе)
+.env.example
+.env.portainer
+.env.portainer.existing
