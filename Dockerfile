@@ -14,6 +14,8 @@ RUN apk add --no-cache \
     oniguruma-dev \
     icu-dev \
     curl \
+    curl-dev \
+    openssl-dev \
     git \
     zip \
     unzip
@@ -31,7 +33,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         opcache \
         exif \
         fileinfo \
-        calendar
+        calendar \
+        curl
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -54,6 +57,7 @@ RUN { \
         echo 'memory_limit=256M'; \
         echo 'display_errors=Off'; \
         echo 'expose_php=Off'; \
+        echo 'allow_url_fopen=On'; \
     } > /usr/local/etc/php/conf.d/uploads.ini
 
 # Configure PHP-FPM to pass environment variables
