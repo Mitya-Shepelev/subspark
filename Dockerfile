@@ -84,6 +84,9 @@ WORKDIR /var/www/html
 # Copy application files
 COPY --chown=www-data:www-data . /var/www/html
 
+# Install PHP dependencies (AWS SDK, QR Code, etc.)
+RUN cd /var/www/html/includes && composer install --no-dev --optimize-autoloader
+
 # Create necessary directories
 RUN mkdir -p \
     /var/www/html/uploads/avatars \
