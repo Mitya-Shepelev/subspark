@@ -80,7 +80,8 @@ RUN mkdir -p \
     /var/www/html/uploads/xvideos \
     /var/www/html/uploads/spImages \
     /run/nginx \
-    /var/log/nginx
+    /var/log/nginx \
+    /var/log/supervisor
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/uploads \
