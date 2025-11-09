@@ -1,0 +1,12 @@
+{
+  "require": {
+    "authorizenet/authorizenet": "^2.0",
+    "stripe/stripe-php": "^10.0",
+    "razorpay/razorpay": "^2.8",
+    "mollie/mollie-api-php": "^2.54",
+    "iyzico/iyzipay-php": "^1.0",
+    "rmccue/requests": "^2.0",
+    "doctrine/orm": "^2.12"
+  }
+}
+

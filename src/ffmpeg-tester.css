@@ -1,0 +1,83 @@
+body {
+    font-family: 'Ubuntu', sans-serif;
+    font-size: 15px;
+    color: #222;
+    margin: 0;
+    padding: 10px;
+}
+
+.fftester-container {
+    max-width: 800px;
+    margin: 0 auto 30px;
+    padding-top: 1px;
+    text-align: left;
+}
+
+.fftester-title {
+    text-align: center;
+    font-size: 22px;
+    margin: 10px;
+}
+
+.fftester-hr {
+    border: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+.fftester-image-center {
+    text-align: center;
+}
+
+.fftester-logo {
+    border-radius: 4px;
+    max-width: 465px;
+    width: 100%;
+    height: auto;
+}
+
+.fftester-subtitle {
+    font-size: 20px;
+    color: #000;
+    margin: 30px 0 10px;
+}
+
+.fftester-pre {
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    overflow-x: auto;
+    max-height: 200px;
+    white-space: pre-wrap;
+}
+
+.fftester-msg {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.fftester-info {
+    background-color: #ebf5fa;
+    border: 1px solid #d2dce1;
+    color: #2c6e9e;
+}
+
+.fftester-warning {
+    background-color: #fff0eb;
+    border: 1px solid #ffd7cd;
+    color: #c53b00;
+}
+
+.fftester-success {
+    background-color: #faffe6;
+    border: 1px solid #dce6be;
+    color: #6c8e00;
+}
+
+.fftester-note {
+    font-size: 14px;
+    color: #666;
+    margin-top: -10px;
+}

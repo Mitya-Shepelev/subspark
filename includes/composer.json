@@ -1,0 +1,7 @@
+{
+    "require": {
+        "endroid/qr-code": "^5.1",
+        "aws/aws-sdk-php": "^3.300",
+        "fakerphp/faker": "^1.24"
+    }
+}

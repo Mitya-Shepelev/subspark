@@ -1,0 +1,1 @@
+2025-04-10 15:48:58: QR boyutu çok büyük! Genişlik veya yükseklik sınırı aşıldı.2025-04-10 15:50:36: QR boyutu çok büyük! Genişlik veya yükseklik sınırı aşıldı.
