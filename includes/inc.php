@@ -449,6 +449,10 @@ $digitalOceanPublicBase = getenv('SPACES_PUBLIC_BASE') ?: $digitalOceanPublicBas
 if (is_file(__DIR__ . '/minio_config.php')) {
     @include __DIR__ . '/minio_config.php';
 }
+// Optional local override file for Selectel admin settings
+if (is_file(__DIR__ . '/selectel_config.php')) {
+    @include __DIR__ . '/selectel_config.php';
+}
 
 /**
  * MinIO Storage Configuration (S3-compatible)
@@ -475,6 +479,28 @@ $minioEndpoint   = getenv('MINIO_ENDPOINT')    ?: $minioEndpoint;
 $minioPublicBase = getenv('MINIO_PUBLIC_BASE') ?: $minioPublicBase;
 $minioPathStyle  = getenv('MINIO_PATH_STYLE')  ?: $minioPathStyle;
 $minioSslVerify  = getenv('MINIO_SSL_VERIFY')  ?: $minioSslVerify;
+
+/**
+ * Selectel S3 Storage Configuration (S3-compatible)
+ * Russian cloud provider with S3-compatible API
+ * Endpoint: https://s3.selcdn.ru, Region: ru-1
+ */
+$selectelStatus   = isset($inc['selectel_status'])      ? $inc['selectel_status']      : '0';
+$selectelBucket   = isset($inc['selectel_bucket'])      ? $inc['selectel_bucket']      : NULL;
+$selectelRegion   = isset($inc['selectel_region'])      ? $inc['selectel_region']      : 'ru-1';
+$selectelKey      = isset($inc['selectel_key'])         ? $inc['selectel_key']         : NULL;
+$selectelSecret   = isset($inc['selectel_secret_key'])  ? $inc['selectel_secret_key']  : NULL;
+$selectelEndpoint = isset($inc['selectel_endpoint'])    ? $inc['selectel_endpoint']    : 'https://s3.selcdn.ru';
+$selectelPublicBase = isset($inc['selectel_public_base']) ? $inc['selectel_public_base'] : NULL;
+
+// Environment overrides (developer-friendly)
+$selectelStatus     = getenv('SELECTEL_STATUS')      ?: $selectelStatus;
+$selectelBucket     = getenv('SELECTEL_BUCKET')      ?: $selectelBucket;
+$selectelRegion     = getenv('SELECTEL_REGION')      ?: $selectelRegion;
+$selectelKey        = getenv('SELECTEL_KEY')         ?: $selectelKey;
+$selectelSecret     = getenv('SELECTEL_SECRET')      ?: $selectelSecret;
+$selectelEndpoint   = getenv('SELECTEL_ENDPOINT')    ?: $selectelEndpoint;
+$selectelPublicBase = getenv('SELECTEL_PUBLIC_BASE') ?: $selectelPublicBase;
 
 // Load unified object storage helpers
 include_once __DIR__ . '/object_storage.php';

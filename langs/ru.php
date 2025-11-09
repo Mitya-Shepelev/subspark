@@ -1614,6 +1614,14 @@ $LANG = array(
     'minio_public_base' => 'Базовый публичный URL (необязательно)',
     'minio_path_style' => 'Адресация в стиле пути',
     'minio_ssl_verify' => 'Проверять SSL-сертификаты',
+    /* Selectel S3 */
+    'selectel_settings' => 'Настройки Selectel S3',
+    'selectel_status' => 'Статус Selectel S3',
+    'selectel_status_not' => '<li>Когда Selectel S3 включен, он будет использоваться вместо других облачных хранилищ.</li>',
+    'selectel_endpoint' => 'Конечная точка Selectel',
+    'selectel_endpoint_not' => 'По умолчанию: https://s3.selcdn.ru',
+    'selectel_region_not' => 'Selectel использует регион ru-1',
+    'selectel_public_base_not' => 'Необязательно: CDN URL для вашего контейнера (например, https://123456.selcdn.ru/container-name/)',
     /*4.1.6*/
     'instagramer' => 'Инстаграмер',
     'youtuber' => 'Ютубер',

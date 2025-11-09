@@ -110,11 +110,11 @@
             <div class="flex_ tabing menu_svg"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('171'));?></div><div class="flex_ lm"><?php echo iN_HelpSecure($LANG['manage_announcement']);?></div>
         </div>
       </a>
-      <div class="menu_item subCaller flex_ tabing_non_justify transition border_one <?php echo in_array($pageFor, ['storage_settings', 'oceansettings', 'wasabi_settings', 'minio_settings']) ? "active_p" : ""; ?>" data-id="storage_setting">
+      <div class="menu_item subCaller flex_ tabing_non_justify transition border_one <?php echo in_array($pageFor, ['storage_settings', 'oceansettings', 'wasabi_settings', 'minio_settings', 'selectel_settings']) ? "active_p" : ""; ?>" data-id="storage_setting">
             <div class="flex_ tabing menu_svg"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('109'));?></div><div class="flex_ lm"><?php echo iN_HelpSecure($LANG['storage']);?></div>
             <div class="sub_menu_arrow"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('36'));?></div>
       </div>
-      <div class="sub_menu_wrapper border_one flex_ column <?php echo in_array($pageFor, ['storage_settings', 'oceansettings', 'wasabi_settings', 'minio_settings']) ? 'sub_in' : '' ?>" id="storage_setting">
+      <div class="sub_menu_wrapper border_one flex_ column <?php echo in_array($pageFor, ['storage_settings', 'oceansettings', 'wasabi_settings', 'minio_settings', 'selectel_settings']) ? 'sub_in' : '' ?>" id="storage_setting">
             <a href="<?php echo iN_HelpSecure($base_url).'admin/';?>storage_settings">
               <div class="sub_menu_item transition flex_ tabing_non_justify border_one <?php echo iN_HelpSecure($pageFor) == 'storage_settings' ? "active_p" : ""; ?>">
                 <div class="flex_ lm"><?php echo iN_HelpSecure($LANG['s3_storage_settings']);?></div>
@@ -133,6 +133,11 @@
             <a href="<?php echo iN_HelpSecure($base_url).'admin/';?>minio_settings">
               <div class="sub_menu_item transition flex_ tabing_non_justify border_one <?php echo iN_HelpSecure($pageFor) == 'minio_settings' ? "active_p" : ""; ?>">
                 <div class="flex_ lm"><?php echo iN_HelpSecure($LANG['minio_settings']);?></div>
+              </div>
+            </a>
+            <a href="<?php echo iN_HelpSecure($base_url).'admin/';?>selectel_settings">
+              <div class="sub_menu_item transition flex_ tabing_non_justify border_one <?php echo iN_HelpSecure($pageFor) == 'selectel_settings' ? "active_p" : ""; ?>">
+                <div class="flex_ lm"><?php echo iN_HelpSecure($LANG['selectel_settings']);?></div>
               </div>
             </a>
         </div>

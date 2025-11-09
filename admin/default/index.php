@@ -52,6 +52,10 @@ if ($pageFor) {
         case 'minio_settings.php':
             include 'sources/minio_settings.php';
             break;
+        case 'selectel_settings':
+        case 'selectel_settings.php':
+            include 'sources/selectel_settings.php';
+            break;
         case 'oceansettings':
         case 'oceansettings.php':
             include 'sources/oceansettings.php';

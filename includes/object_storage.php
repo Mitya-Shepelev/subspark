@@ -4,6 +4,7 @@
 // - Wasabi (S3-compatible)
 // - DigitalOcean Spaces (S3-compatible)
 // - MinIO (S3-compatible)
+// - Selectel S3 (S3-compatible)
 //
 // Requirements:
 // - AWS SDK for PHP available at includes/vendor (preferred)
@@ -11,7 +12,7 @@
 // - This file is included from includes/inc.php AFTER $inc is loaded
 //
 // Usage:
-//   storage_active_provider();                  // 'minio' | 's3' | 'spaces' | 'wasabi' | 'local'
+//   storage_active_provider();                  // 'selectel' | 'minio' | 's3' | 'spaces' | 'wasabi' | 'local'
 //   storage_public_url('uploads/files/a.mp4');  // returns public URL depending on provider
 //   storage_upload('/path/local.mp4', 'uploads/files/a.mp4', true);
 //   storage_delete('uploads/files/a.mp4');
@@ -26,14 +27,16 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/s3/vendor/autoload.php';
 }
 
-/** Return the active provider key: s3|wasabi|spaces|local */
+/** Return the active provider key: selectel|s3|wasabi|spaces|minio|local */
 function storage_active_provider(): string {
     $s3Status = $GLOBALS['s3Status'] ?? '0';
     $WasStatus = $GLOBALS['WasStatus'] ?? '0';
     $digitalOceanStatus = $GLOBALS['digitalOceanStatus'] ?? '0';
     $minioStatus = $GLOBALS['minioStatus'] ?? '0';
+    $selectelStatus = $GLOBALS['selectelStatus'] ?? '0';
     // Keep legacy precedence: S3 > Spaces > Wasabi
-    // Prefer MinIO when explicitly enabled
+    // Prefer MinIO and Selectel when explicitly enabled
+    if ($selectelStatus == '1') return 'selectel';
     if ($minioStatus == '1') return 'minio';
     if ($s3Status == '1') return 's3';
     if ($digitalOceanStatus == '1') return 'spaces';
@@ -45,6 +48,29 @@ function storage_active_provider(): string {
 function storage_provider_config(): array {
     $provider = storage_active_provider();
     switch ($provider) {
+        case 'selectel':
+            $bucket   = getenv('SELECTEL_BUCKET')   ?: ($GLOBALS['selectelBucket'] ?? null);
+            $region   = getenv('SELECTEL_REGION')   ?: ($GLOBALS['selectelRegion'] ?? 'ru-1');
+            $key      = getenv('SELECTEL_KEY')      ?: ($GLOBALS['selectelKey'] ?? null);
+            $secret   = getenv('SELECTEL_SECRET')   ?: ($GLOBALS['selectelSecret'] ?? null);
+            $endpoint = getenv('SELECTEL_ENDPOINT') ?: ($GLOBALS['selectelEndpoint'] ?? 'https://s3.selcdn.ru');
+            $public   = getenv('SELECTEL_PUBLIC_BASE') ?: ($GLOBALS['selectelPublicBase'] ?? null);
+
+            // Compute default public base if not provided
+            if (!$public && $bucket) {
+                $public = rtrim($endpoint, '/') . '/' . $bucket . '/';
+            }
+            return [
+                'provider'    => 'selectel',
+                'bucket'      => $bucket,
+                'region'      => $region,
+                'endpoint'    => $endpoint,
+                'public_base' => $public ?: '/',
+                'credentials' => ['key' => $key, 'secret' => $secret],
+                'options'     => [
+                    'use_path_style_endpoint' => true,
+                ],
+            ];
         case 'minio':
             $bucket   = getenv('MINIO_BUCKET')   ?: ($GLOBALS['minioBucket'] ?? null);
             $region   = getenv('MINIO_REGION')   ?: ($GLOBALS['minioRegion'] ?? 'us-east-1');
@@ -274,7 +300,7 @@ function storage_upload(string $localPath, string $remoteKey, bool $public = tru
         'SourceFile' => $localPath,
     ];
     // Respect provider nuances: Wasabi buckets often use policy-level public settings.
-    if ($public && in_array($provider, ['s3','spaces','minio'], true)) { $args['ACL'] = 'public-read'; }
+    if ($public && in_array($provider, ['s3','spaces','minio','selectel'], true)) { $args['ACL'] = 'public-read'; }
 
     try {
         $client->putObject($args);
