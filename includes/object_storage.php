@@ -54,6 +54,10 @@ function storage_provider_config(): array {
             $key      = getenv('SELECTEL_KEY')      ?: ($GLOBALS['selectelKey'] ?? null);
             $secret   = getenv('SELECTEL_SECRET')   ?: ($GLOBALS['selectelSecret'] ?? null);
             $endpoint = getenv('SELECTEL_ENDPOINT') ?: ($GLOBALS['selectelEndpoint'] ?? 'https://s3.selcdn.ru');
+            // Ensure endpoint has protocol
+            if ($endpoint && !preg_match('/^https?:\/\//', $endpoint)) {
+                $endpoint = 'https://' . $endpoint;
+            }
             $public   = getenv('SELECTEL_PUBLIC_BASE') ?: ($GLOBALS['selectelPublicBase'] ?? null);
 
             // Compute default public base if not provided

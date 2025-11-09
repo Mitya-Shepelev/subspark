@@ -20,8 +20,8 @@
                 <div class="i_general_row_box_item flex_ tabing_non_justify">
                     <div class="irow_box_left tabing flex_"><?php echo iN_HelpSecure($LANG['selectel_endpoint'] ?? 'Endpoint'); ?></div>
                     <div class="irow_box_right column flex_">
-                        <input type="text" name="selectelEndpoint" class="i_input flex_" placeholder="https://s3.selcdn.ru" value="<?php echo iN_HelpSecure($selectelEndpoint ?? 'https://s3.selcdn.ru'); ?>">
-                        <div class="rec_not box_not_padding_left"><?php echo iN_HelpSecure($LANG['selectel_endpoint_not'] ?? 'Default: https://s3.selcdn.ru'); ?></div>
+                        <input type="text" name="selectelEndpoint" class="i_input flex_" placeholder="https://s3.selcdn.ru" value="<?php echo iN_HelpSecure($selectelEndpoint ?? 'https://s3.selcdn.ru'); ?>" readonly style="background-color: #f5f5f5;">
+                        <div class="rec_not box_not_padding_left"><strong>⚠️ Не изменяйте!</strong> Правильный endpoint: https://s3.selcdn.ru</div>
                     </div>
                 </div>
 
