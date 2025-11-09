@@ -2981,7 +2981,7 @@ if ($type == 'upload') {
 				if (in_array($ext, $valid_formats)) {
 					$d = date('Y-m-d');
 					if (!file_exists($uploadCover . $d)) {
-						$newFile = mkdir($uploadCover . $d, 0755);
+						$newFile = mkdir($uploadCover . $d, 0755, true);
 					}
 					if (file_put_contents($uploadCover . $d . '/' . $getFilename, $data)) {
 						$pathFile = 'uploads/covers/' . $d . '/' . $getFilename;
@@ -3019,7 +3019,7 @@ if ($type == 'upload') {
 				if (in_array($ext, $valid_formats)) {
 					$d = date('Y-m-d');
 					if (!file_exists($uploadAvatar . $d)) {
-						$newFile = mkdir($uploadAvatar . $d, 0755);
+						$newFile = mkdir($uploadAvatar . $d, 0755, true);
 					}
                         if (file_put_contents($uploadAvatar . $d . '/' . $getFilename, $data)) {
                             $pathFile = 'uploads/avatars/' . $d . '/' . $getFilename;
