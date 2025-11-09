@@ -293,10 +293,21 @@ function storage_upload(string $localPath, string $remoteKey, bool $public = tru
     }
     $cfg = storage_provider_config();
     $client = storage_client();
-    if (!$client) { return false; }
+    if (!$client) {
+        error_log("[Storage] Upload failed: S3 client not initialized for provider '{$provider}'");
+        return false;
+    }
 
     $bucket = $cfg['bucket'] ?? null;
-    if (!$bucket) { return false; }
+    if (!$bucket) {
+        error_log("[Storage] Upload failed: Bucket not configured for provider '{$provider}'");
+        return false;
+    }
+
+    if (!is_file($localPath)) {
+        error_log("[Storage] Upload failed: Local file does not exist: {$localPath}");
+        return false;
+    }
 
     $args = [
         'Bucket' => $bucket,
@@ -306,11 +317,21 @@ function storage_upload(string $localPath, string $remoteKey, bool $public = tru
     // Respect provider nuances: Wasabi buckets often use policy-level public settings.
     if ($public && in_array($provider, ['s3','spaces','minio','selectel'], true)) { $args['ACL'] = 'public-read'; }
 
+    error_log("[Storage] Uploading to {$provider}: bucket={$bucket}, key={$remoteKey}, endpoint=" . ($cfg['endpoint'] ?? 'default'));
+
     try {
         $client->putObject($args);
+        error_log("[Storage] Upload successful: {$remoteKey}");
         return true;
     } catch (AwsException $e) {
-        error_log('Storage upload failed: ' . $e->getMessage());
+        error_log('[Storage] Upload failed: ' . $e->getMessage());
+        error_log('[Storage] Error details: ' . json_encode([
+            'provider' => $provider,
+            'bucket' => $bucket,
+            'key' => $remoteKey,
+            'endpoint' => $cfg['endpoint'] ?? 'none',
+            'error_code' => $e->getAwsErrorCode(),
+        ]));
         return false;
     }
 }

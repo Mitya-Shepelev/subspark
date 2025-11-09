@@ -58,12 +58,16 @@ RUN { \
         echo 'display_errors=Off'; \
         echo 'expose_php=Off'; \
         echo 'allow_url_fopen=On'; \
+        echo 'error_log=/proc/self/fd/2'; \
+        echo 'log_errors=On'; \
     } > /usr/local/etc/php/conf.d/uploads.ini
 
-# Configure PHP-FPM to pass environment variables
+# Configure PHP-FPM to pass environment variables and enable error logging
 RUN { \
         echo '[www]'; \
         echo 'clear_env = no'; \
+        echo 'catch_workers_output = yes'; \
+        echo 'decorate_workers_output = no'; \
     } > /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # Create nginx config
