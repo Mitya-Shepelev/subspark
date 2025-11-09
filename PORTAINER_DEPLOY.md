@@ -1,44 +1,54 @@
 # Развертывание SubSpark в Portainer
 
-## Проблема
-Сборка образа из GitHub через Portainer занимает слишком много времени (20+ минут).
+## ✅ Автоматическая сборка через GitHub Actions
 
-## Решение: Собрать образ локально на сервере
+При каждом `git push` в ветку `main` автоматически:
+- Собирается Docker образ
+- Публикуется в GitHub Container Registry (ghcr.io)
+- Готов к использованию в Portainer
 
-### Шаг 1: SSH на сервер и соберите образ
+**Никакой работы через SSH!** Просто делайте `git push` и обновляйте стек в Portainer.
 
-```bash
-# Перейдите в директорию или клонируйте репозиторий
-cd /tmp
-git clone https://github.com/Mitya-Shepelev/subspark.git
-cd subspark
+---
 
-# Соберите Docker образ
-docker build -t subspark:latest .
+## 🚀 Первичная настройка
 
-# Проверьте что образ создан
-docker images | grep subspark
-```
+### Шаг 1: Сделайте репозиторий публичным (опционально)
 
-Сборка займет 3-5 минут.
+Если репозиторий приватный, Docker образ тоже будет приватным.
 
-### Шаг 2: Создайте стек в Portainer
+**Вариант А: Публичный образ** (проще)
+1. GitHub → Settings → Change repository visibility → Public
 
-1. Откройте **Portainer** → **Stacks** → **Add stack**
+**Вариант Б: Приватный образ** (требует токен)
+1. Создайте Personal Access Token с правами `read:packages`
+2. В Portainer создайте Registry с ghcr.io и вашим токеном
+
+### Шаг 2: Дождитесь первой сборки
+
+После этого коммита GitHub Actions автоматически соберет образ (~5 минут).
+
+Проверить статус:
+- GitHub → Actions → "Build and Push Docker Image"
+- Дождитесь зеленой галочки ✅
+
+### Шаг 3: Создайте стек в Portainer
+
+1. **Portainer** → **Stacks** → **Add stack**
 2. Name: `subspark`
 3. Build method: **Web editor**
-
-### Шаг 3: Вставьте конфигурацию
+4. Вставьте конфигурацию:
 
 ```yaml
 version: '3.8'
 
 services:
   app:
-    image: subspark:latest
+    image: ghcr.io/mitya-shepelev/subspark:latest
     container_name: subspark-app
     restart: unless-stopped
     network_mode: host
+    pull_policy: always
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
@@ -46,7 +56,6 @@ services:
       - DB_NAME=${DB_NAME:-subspark}
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_PORT=${DB_PORT:-3306}
       - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
       - SELECTEL_BUCKET=${SELECTEL_BUCKET:-}
       - SELECTEL_REGION=${SELECTEL_REGION:-ru-1}
@@ -62,52 +71,52 @@ volumes:
 
 ### Шаг 4: Добавьте переменные окружения
 
-В разделе **Environment variables**:
-
 ```
-DB_PASSWORD=ваш_пароль_mysql
+DB_PASSWORD=ваш_пароль
 ```
 
-Для Selectel (опционально):
+Для Selectel:
 ```
 SELECTEL_STATUS=1
-SELECTEL_BUCKET=ваш_контейнер
-SELECTEL_KEY=ваш_access_key
-SELECTEL_SECRET=ваш_secret_key
+SELECTEL_BUCKET=ваш_bucket
+SELECTEL_KEY=ваш_key
+SELECTEL_SECRET=ваш_secret
 SELECTEL_PUBLIC_BASE=https://123456.selcdn.ru/container-name/
 ```
 
 ### Шаг 5: Deploy
 
-Нажмите **Deploy the stack** - развертывание займет 5-10 секунд!
+Нажмите **Deploy the stack** - образ скачается за 10-30 секунд!
 
 ---
 
-## Обновление кода (после git push)
+## 🔄 Обновление кода (автоматически)
 
-Когда вы обновляете код в GitHub:
+### После каждого git push:
 
+1. **Закоммитьте изменения:**
 ```bash
-# SSH на сервер
-cd /tmp/subspark
-git pull origin main
-docker build -t subspark:latest .
-docker restart subspark-app
+git add .
+git commit -m "Update code"
+git push origin main
 ```
 
-Или через Portainer:
-1. Пересоберите образ на сервере (команды выше)
-2. В Portainer найдите стек `subspark`
-3. Нажмите **Update the stack** → **Re-pull image** → **Update**
+2. **Дождитесь сборки образа** (проверьте GitHub Actions, ~5 минут)
+
+3. **Обновите стек в Portainer:**
+   - Откройте стек `subspark`
+   - Нажмите **Pull and redeploy** или **Update the stack**
+   - Включите **Re-pull image and redeploy**
+   - Нажмите **Update**
+
+**Готово!** Новый код автоматически развернут.
 
 ---
 
-## Быстрый старт (одна команда)
+## 📝 Преимущества этого подхода
 
-```bash
-cd /tmp && \
-git clone https://github.com/Mitya-Shepelev/subspark.git && \
-cd subspark && \
-docker build -t subspark:latest . && \
-echo "✅ Образ subspark:latest готов! Теперь создайте стек в Portainer"
-```
+✅ Никакого SSH доступа к серверу
+✅ Автоматическая сборка при каждом push
+✅ Быстрое скачивание образа (10-30 сек)
+✅ Версионирование образов (latest + SHA)
+✅ Просто обновлять через Portainer UI

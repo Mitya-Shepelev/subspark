@@ -2,10 +2,11 @@ version: '3.8'
 
 services:
   app:
-    image: subspark:latest
+    image: ghcr.io/mitya-shepelev/subspark:latest
     container_name: subspark-app
     restart: unless-stopped
     network_mode: host
+    pull_policy: always
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
