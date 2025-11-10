@@ -21,26 +21,26 @@
         <?php if($userQrCode){ $shareUrl = $base_url.'sharer?page='.base64_encode($userName)."&qr=1";?>
             <div class="qrCodeShareButtons flex_ tabing_non_justify">
               <div class="qrSocialIcon flex_ tabing share-btn"
-                   data-social="facebook"
+                   data-social="vk"
                    data-url="<?php echo iN_HelpSecure($shareUrl); ?>"
                    data-id="<?php echo iN_HelpSecure($userID); ?>">
-                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('90')); ?>
+                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('189')); ?>
               </div>
-            
+
               <div class="qrSocialIcon flex_ tabing share-btn"
-                   data-social="twitter"
+                   data-social="telegram"
                    data-url="<?php echo iN_HelpSecure($shareUrl); ?>"
                    data-id="<?php echo iN_HelpSecure($userID); ?>">
-                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('34')); ?>
+                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('190')); ?>
               </div>
-            
+
               <div class="qrSocialIcon flex_ tabing share-btn"
-                   data-social="linkedin"
+                   data-social="odnoklassniki"
                    data-url="<?php echo iN_HelpSecure($shareUrl); ?>"
                    data-id="<?php echo iN_HelpSecure($userID); ?>">
-                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('89')); ?>
+                <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('191')); ?>
               </div>
-            
+
               <div class="qrSocialIcon flex_ tabing share-btn"
                    data-social="whatsapp"
                    data-url="<?php echo iN_HelpSecure($shareUrl); ?>"

@@ -183,5 +183,74 @@
   </div>
 </div>
 
+<script>
+// Gender selection with visual feedback
+document.addEventListener('DOMContentLoaded', function() {
+    const genderLabels = document.querySelectorAll('.flexBox label.youare');
+
+    // Helper function to apply active styles
+    function applyActiveStyles(span) {
+        span.style.setProperty('border', '2px solid #2770dd', 'important');
+        span.style.setProperty('color', '#2770dd', 'important');
+        span.style.setProperty('background-color', 'rgba(39, 112, 221, 0.05)', 'important');
+        const svg = span.querySelector('svg');
+        if (svg) {
+            svg.style.setProperty('fill', '#2770dd', 'important');
+            svg.querySelectorAll('path, circle, rect').forEach(function(p) {
+                p.style.setProperty('fill', '#2770dd', 'important');
+            });
+        }
+    }
+
+    // Helper function to apply inactive styles
+    function applyInactiveStyles(span) {
+        span.style.setProperty('border', '1px solid #F0F1F5', 'important');
+        span.style.setProperty('color', '#444444', 'important');
+        span.style.setProperty('background-color', 'transparent', 'important');
+        const svg = span.querySelector('svg');
+        if (svg) {
+            svg.style.setProperty('fill', '#444444', 'important');
+            svg.querySelectorAll('path, circle, rect').forEach(function(p) {
+                p.style.setProperty('fill', '#444444', 'important');
+            });
+        }
+    }
+
+    // Setup click handlers
+    genderLabels.forEach(function(label) {
+        const radioInput = label.querySelector('input[type="radio"]');
+        const span = label.querySelector('span');
+
+        label.addEventListener('click', function() {
+            if (radioInput) {
+                radioInput.checked = true;
+
+                // Reset all labels to inactive state
+                genderLabels.forEach(function(lbl) {
+                    const s = lbl.querySelector('span');
+                    if (s) applyInactiveStyles(s);
+                });
+
+                // Apply active state to clicked label
+                if (span) applyActiveStyles(span);
+            }
+        });
+    });
+
+    // Initialize styles on page load
+    const checkedRadio = document.querySelector('.flexBox label.youare input[type="radio"]:checked');
+    if (checkedRadio) {
+        const span = checkedRadio.closest('label.youare').querySelector('span');
+        if (span) applyActiveStyles(span);
+    }
+
+    // Set inactive styles for unchecked radios
+    document.querySelectorAll('.flexBox label.youare input[type="radio"]:not(:checked)').forEach(function(radio) {
+        const span = radio.closest('label.youare').querySelector('span');
+        if (span) applyInactiveStyles(span);
+    });
+});
+</script>
+
 <script type="text/javascript" src="<?php echo iN_HelpSecure($base_url);?>themes/<?php echo iN_HelpSecure($currentTheme);?>/js/masked/jquery.mask.js?v=<?php echo iN_HelpSecure($version);?>"></script>
 <script type="text/javascript" src="<?php echo iN_HelpSecure($base_url);?>themes/<?php echo iN_HelpSecure($currentTheme);?>/js/profileSettingsHandler.js?v=<?php echo iN_HelpSecure($version);?>"></script>

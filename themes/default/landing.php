@@ -196,7 +196,10 @@
             <div class="landing_create_equal_box">
                 <label for="rangeNumberFollowers">
                 <div class="smiulator_helper tabing_non_justify flex_">
-                    <?php echo $LANG['l_number_of_followers'];?> <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('34'));?><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('88'));?><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('90'));?>
+                    <?php echo $LANG['l_number_of_followers'];?>
+                    <span style="display:inline-block;width:28px;height:28px;margin:0 3px;"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('189'));?></span>
+                    <span style="display:inline-block;width:28px;height:28px;margin:0 3px;"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('190'));?></span>
+                    <span style="display:inline-block;width:28px;height:28px;margin:0 3px;"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('191'));?></span>
                     <div class="helper_right flex_ tabing"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('43'));?><span id="numberFollowers">1000</span></div>
                 </div>
                 </label>
@@ -204,7 +207,7 @@
             <div class="landing_create_equal_box">
                 <div class="smiulator_helper tabing_non_justify flex_">
                     <?php echo $LANG['l_monthly_subscription_price'];?>
-                    <div class="helper_right flex_ tabing"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('51'));?><?php echo $currencys[$defaultCurrency];?><span id="monthlySubscription">2</span></div>
+                    <div class="helper_right flex_ tabing"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('51'));?>₽<span id="monthlySubscription">190</span></div>
                 </div>
             </div>
             </div>
@@ -213,7 +216,7 @@
                 <input type="range" class="custom-range" value="0" min="1000" max="1000000" id="rangeNumberFollowers">
             </div>
             <div class="landing_create_equal_box horizontally-stacked-slider">
-                <input type="range" class="custom-range" value="0" min="2" max="100" id="rangeMonthlySubscription">
+                <input type="range" class="custom-range" value="190" min="190" max="9500" id="rangeMonthlySubscription">
             </div>
             </div>
             <div class="landing_sec_">

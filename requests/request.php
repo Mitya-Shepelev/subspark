@@ -3066,15 +3066,18 @@ if ($type == 'upload') {
 			if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
 				echo 'no';
 				exit();
-			} else if ($newEmail != $userEmail) {
+			} else if ($newEmail == $userEmail) {
+				echo 'same';
+			} else if (!$checkEmail) {
+				echo 'inuse';
+				exit();
+			} else {
 				$Change = $iN->iN_CheckUserPasswordAndUpdateIfIsValid($userID, $currentPassword, $newEmail);
 				if ($Change) {
 					echo '200';
 				} else {
 					echo '404';
 				}
-			} else {
-				echo 'same';
 			}
 		}
 	}

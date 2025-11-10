@@ -11,7 +11,7 @@ if (isset($_GET["page-id"])) {
 <div class="settings_main_wrapper">
   <div class="i_settings_wrapper_in i_inline_table">
      <div class="i_settings_wrapper_title">
-       <div class="i_settings_wrapper_title_txt flex_"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('42'));?><?php echo iN_HelpSecure($LANG['purchased_point_list']);?></div>
+       <div class="i_settings_wrapper_title_txt flex_"><?php echo html_entity_decode($iN->iN_SelectedMenuIcon('42'));?><?php echo iN_HelpSecure($LANG['purchase_point_list']);?></div>
        <div class="i_moda_header_nt"><?php echo html_entity_decode($LANG['purchase_point_list_not']);?></div>
     </div>
     <div class="i_settings_wrapper_items">

@@ -1944,8 +1944,10 @@ $(document).ready(function () {
                 setTimeout(() => {
                     myEmailForm.find(':input[type=submit]').prop('disabled', false);
                 }, 3000);
-                if (data == '404') {
+                if (data == 'inuse') {
                     $(".warning_inuse").show();
+                } else if (data == '404') {
+                    $(".warning_wrong_password").show();
                 } else if (data == 'no') {
                     $(".warning_invalid").show();
                 } else if (data == 'same') {
@@ -3341,8 +3343,12 @@ $(document).ready(function () {
             },
             success: function(response) {
                 $(".loaderWrapper").remove();
-                if (response) {
-                    $(".qrCodeImage").html('<img src="' + response + '">');
+                if (response && response !== '404') {
+                    $(".qrCodeImage").html('<img src="' + siteurl + response + '">');
+                    // Reload page to show share buttons
+                    setTimeout(function() {
+                        location.reload();
+                    }, 500);
                 }
                 $('.qrCodeGenerator').prop('disabled', false);
             }

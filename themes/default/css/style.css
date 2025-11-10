@@ -6567,6 +6567,10 @@ div {
 .youare {
   justify-content: center;
   align-items: center;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .flexBox label input {
@@ -6587,11 +6591,14 @@ div {
   color: #444444;
   letter-spacing: 1px;
   font-weight: 700;
-  cursor: pointer;
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .flexBox label span svg {
@@ -6604,17 +6611,12 @@ div {
   margin-right: 10px;
 }
 
-.flexBox label#youarein input:checked ~ span {
+.flexBox label.youare input:checked ~ span {
   border: 1px solid #2770dd;
   color: #2770dd;
 }
 
-.flexBox label#youare input:checked ~ span {
-  border: 1px solid #2770dd;
-  color: #2770dd;
-}
-
-.flexBox label#youarein input:checked ~ span svg {
+.flexBox label.youare input:checked ~ span svg {
   fill: #2770dd;
 }
 

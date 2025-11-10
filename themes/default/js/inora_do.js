@@ -431,38 +431,36 @@ $(document).ready(function () {
          * Format number with commas and currency symbol
          */
         function decimalFormat(nStr) {
-            const decimalDot = ".";
             const decimalComma = ",";
-            const currencyLeft = $("body").data("currencyleft");
-            const currencyRight = "";
+            const currencySymbol = " ₽"; // Символ рубля в конце
 
-            nStr += "";
-            let x = nStr.split(".");
-            let x1 = x[0];
-            let x2 = x.length > 1 ? decimalDot + x[1] : "";
+            // Убираем копейки, округляем до целого числа
+            nStr = Math.round(parseFloat(nStr)).toString();
+
+            let x1 = nStr;
             const rgx = /(\d+)(\d{3})/;
 
             while (rgx.test(x1)) {
                 x1 = x1.replace(rgx, "$1" + decimalComma + "$2");
             }
 
-            return currencyLeft + x1 + x2 + currencyRight;
+            return x1 + currencySymbol;
         }
 
         /**
-         * Calculate estimated earnings
+         * Calculate estimated earnings in RUB
          */
         function earnAvg() {
             const fee = parseFloat($("body").data("adminfee"));
-            const monthlySubscription = parseFloat($("#rangeMonthlySubscription").val());
+            const monthlySubscriptionRub = parseFloat($("#rangeMonthlySubscription").val());
             const numberFollowers = parseFloat($("#rangeNumberFollowers").val());
 
             const estimatedFollowers = numberFollowers * 0.2;
-            const total = estimatedFollowers * monthlySubscription;
-            const platformCut = (total * fee) / 100;
-            const result = total - platformCut;
+            const totalRub = estimatedFollowers * monthlySubscriptionRub;
+            const platformCut = (totalRub * fee) / 100;
+            const resultRub = totalRub - platformCut;
 
-            return decimalFormat(result.toFixed(2));
+            return decimalFormat(resultRub);
         }
 
         // Initial render

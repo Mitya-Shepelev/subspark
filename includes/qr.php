@@ -86,14 +86,12 @@ if ((int)$logedIn === 1) {
                     ->logoResizeToWidth((int)round($size * 0.20))
                     ->logoPunchoutBackground(true);
             }
+        }
 
         $result = $builder->build();
         $png = $result->getString();
         @file_put_contents($fullPath, $png);
         $usedEndroid = is_file($fullPath);
-        } else {
-            $usedEndroid = false;
-        }
     } catch (\Throwable $e) {
         $usedEndroid = false;
     }

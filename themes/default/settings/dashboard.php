@@ -36,7 +36,7 @@
                             <?php echo html_entity_decode($iN->iN_SelectedMenuIcon($box['icon'])).''.iN_HelpSecure($LANG[$box['title']]);?>
                         </div>
                         <div class="chart_row_box_sum">
-                            <?php echo iN_HelpSecure($currencys[$defaultCurrency]).$box['value'];?>
+                            <?php echo $box['value'].' ₽';?>
                         </div>
                         <div class="wmore tabing_non_justify flex_">
                           <a href="<?php echo iN_HelpSecure($base_url);?>settings?tab=<?php echo $box['href']; ?>">
@@ -69,7 +69,7 @@
                     $amount = addCommasAndDots($iN->{$rev['method']}($userID));
                     ?>
                     <div class="chart_row_box flex_ tabing column">
-                        <div class="revenue_sum_u"><?php echo iN_HelpSecure($currencys[$defaultCurrency]).iN_HelpSecure($amount); ?></div>
+                        <div class="revenue_sum_u"><?php echo iN_HelpSecure($amount).' ₽'; ?></div>
                         <div class="revenue_title_u"><?php echo iN_HelpSecure($LANG[$rev['label']]);?></div>
                     </div>
                 <?php } ?>
@@ -147,7 +147,7 @@ fetchEarningsByQuery($sqlProducts, [(int)$userID], $yearMonthTotalMoneyEarning);
     'subscription' => array_values($yearMonthTotalySubscriptions),
     'pointEarnings' => array_values($yearMonthTotalPointEarnings),
     'productEarnings' => array_values($yearMonthTotalMoneyEarning),
-    'currency' => iN_HelpSecure($currencys[$defaultCurrency]),
+    'currency' => ' ₽',
     'labelSub' => iN_HelpSecure($LANG['subscription_earnings']),
     'labelPoint' => iN_HelpSecure($LANG['point_earnings']),
     'labelProduct' => iN_HelpSecure($LANG['product_earning_t']),

@@ -79,7 +79,7 @@
             ticks: {
               beginAtZero: true,
               callback: function (value) {
-                return (chartData.currency || "") + value;
+                return value + (chartData.currency || "");
               }
             }
           }]

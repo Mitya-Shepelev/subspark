@@ -2195,20 +2195,40 @@ public function iN_GetUploadedAvatarURL($uid, $imageID) {
 	/*Check User Email Address*/
 public function iN_CheckEmail($userID, $newEmail) {
 		if ($this->iN_CheckUserExist($userID) == 1) {
-            $exists = (bool) DB::col("SELECT 1 FROM i_users WHERE i_user_email = ? LIMIT 1", [(string)$newEmail]);
+            $exists = (bool) DB::col("SELECT 1 FROM i_users WHERE i_user_email = ? AND iuid != ? LIMIT 1", [(string)$newEmail, (int)$userID]);
             return !$exists;
         } else { return false; }
 	}
 	/*Check User Password is Valid*/
 public function iN_CheckUserPasswordAndUpdateIfIsValid($userID, $pass, $email) {
-		$uPass = sha1(md5($pass));
         if ($this->iN_CheckUserExist($userID) == 1) {
-            $valid = (bool) DB::col("SELECT 1 FROM i_users WHERE i_password = ? AND iuid = ? LIMIT 1", [(string)$uPass, (int)$userID]);
-            if ($valid) {
+            $userDetails = $this->iN_GetUserDetails($userID);
+            $storedHash = isset($userDetails['i_password']) ? (string)$userDetails['i_password'] : '';
+
+            $isValidPassword = false;
+            if ($storedHash !== '') {
+                // Try modern password_verify first
+                if (password_verify($pass, $storedHash)) {
+                    $isValidPassword = true;
+                } else {
+                    // Fallback to legacy hashing methods
+                    $legacyHash = sha1(md5($pass));
+                    $legacySanitizedHash = sha1(md5($this->iN_Secure($pass)));
+                    if (hash_equals($storedHash, $legacyHash) || hash_equals($storedHash, $legacySanitizedHash)) {
+                        $isValidPassword = true;
+                    }
+                }
+            }
+
+            if ($isValidPassword) {
                 DB::exec("UPDATE i_users SET i_user_email = ? WHERE iuid = ?", [(string)$email, (int)$userID]);
                 return true;
-            } else { return false; }
-        } else {return false;}
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
 	}
 	/*Payments Subscriptions List*/
 public function iN_PaymentsSubscriptionsList($userID, $paginationLimit, $page) {
