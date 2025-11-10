@@ -11,6 +11,7 @@ services:
     networks:
       - nginx-proxy-manager_default
       - mysql-8_default
+      - redis_default
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
