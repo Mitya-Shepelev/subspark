@@ -37,19 +37,31 @@ class Cache {
         try {
             self::$redis = new Redis();
 
-            // Connect to Redis (localhost:6379 by default)
+            // Get Redis configuration from environment variables
             $host = getenv('REDIS_HOST') ?: '127.0.0.1';
             $port = getenv('REDIS_PORT') ?: 6379;
+            $password = getenv('REDIS_PASSWORD') ?: null;
+            $db = getenv('REDIS_DB') ?: 0;
             $timeout = 2.0;
 
-            if (self::$redis->connect($host, $port, $timeout)) {
+            if (self::$redis->connect($host, (int)$port, $timeout)) {
                 self::$connected = true;
-                self::$enabled = true;
+
+                // Authenticate if password is provided
+                if ($password) {
+                    self::$redis->auth($password);
+                }
+
+                // Select database
+                if ($db != 0) {
+                    self::$redis->select((int)$db);
+                }
 
                 // Test connection
                 self::$redis->ping();
+                self::$enabled = true;
             } else {
-                error_log('Cache: Failed to connect to Redis');
+                error_log('Cache: Failed to connect to Redis at ' . $host . ':' . $port);
                 self::$enabled = false;
             }
         } catch (Exception $e) {

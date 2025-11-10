@@ -18,7 +18,10 @@ RUN apk add --no-cache \
     openssl-dev \
     git \
     zip \
-    unzip
+    unzip \
+    autoconf \
+    g++ \
+    make
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -36,17 +39,27 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         calendar \
         curl
 
+# Install Redis extension from PECL
+RUN pecl install redis-6.0.2 \
+    && docker-php-ext-enable redis \
+    && rm -rf /tmp/pear
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configure PHP for production
+# Configure PHP for production (optimized settings)
 RUN { \
-        echo 'opcache.memory_consumption=128'; \
-        echo 'opcache.interned_strings_buffer=8'; \
-        echo 'opcache.max_accelerated_files=10000'; \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.memory_consumption=256'; \
+        echo 'opcache.interned_strings_buffer=16'; \
+        echo 'opcache.max_accelerated_files=20000'; \
         echo 'opcache.revalidate_freq=2'; \
         echo 'opcache.fast_shutdown=1'; \
         echo 'opcache.enable_cli=1'; \
+        echo 'opcache.jit=tracing'; \
+        echo 'opcache.jit_buffer_size=128M'; \
+        echo 'opcache.validate_timestamps=1'; \
+        echo 'opcache.save_comments=1'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 RUN { \

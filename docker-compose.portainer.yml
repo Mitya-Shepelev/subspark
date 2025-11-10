@@ -5,7 +5,11 @@ services:
     build: .
     container_name: subspark-app
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "8080:80"
+    networks:
+      - default
+      - redis_default
     volumes:
       - uploads_data:/var/www/html/uploads
     environment:
@@ -15,6 +19,12 @@ services:
       - DB_USER=${DB_USER:-subspark}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_PORT=${DB_PORT:-3306}
+
+      # Redis configuration (external Redis)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
 
       # Selectel S3 Storage (optional)
       - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
@@ -61,3 +71,9 @@ services:
 volumes:
   uploads_data:
     driver: local
+
+networks:
+  redis_default:
+    external: true
+  default:
+    driver: bridge
