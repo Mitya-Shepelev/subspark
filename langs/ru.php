@@ -168,7 +168,7 @@ $LANG = array(
 	/*REGISTER*/
 	'you_are' => 'Вы',
 	'your_full_name' => 'Ваше полное имя',
-	'your_username' => 'Ваше никнейм',
+	'your_username' => 'Ваш никнейм',
 	'accept_terms_of_conditions_register' => 'Регистрируясь, вы принимаете <a href="' . $base_url . 'terms-of-use">условия использования</a> и <a href="' . $base_url . 'cookies">политику конфиденциальности</a>.',
 	'full_for_register' => 'Пожалуйста, заполните всю информацию полностью.',
 	'passwor_too_short' => 'Ваш пароль должен состоять минимум из 6 символов. Он не должен содержать пробелов.',
@@ -189,7 +189,7 @@ $LANG = array(
 	'no_post_will_be_shown' => 'Пока нечего показывать. Начните с публикации чего-нибудь или подпишитесь на участников, чтобы не пропустить ни одной публикации!',
 	'no_post_wilbe_shown_in_this_profile' => 'На этом профиле больше не будет показано постов!',
 	/*Who Can See List*/
-	'whocanseethis' => 'Кто это сможет увидеть?',
+	'whocanseethis' => 'Кто может увидеть?',
 	'weveryone' => 'Все',
 	'wfollowers' => 'Подписчики',
 	'wsubscribers' => 'Подписчики',
