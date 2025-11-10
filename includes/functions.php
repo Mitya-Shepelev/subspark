@@ -8,9 +8,26 @@ class iN_UPDATES {
 	/*Get Site Configurations included in inc.php file
 		* If you add some new row you can include your row in inc.php file
 		* then call your new row from anywhere
+		* OPTIMIZED: Uses Redis cache to avoid DB query on every request
 	*/
 	public function iN_Configurations() {
-		return DB::one("SELECT * FROM i_configurations WHERE configuration_id = 1");
+		// Try to get from cache first
+		$cacheKey = 'config:main';
+		$cached = Cache::get($cacheKey);
+
+		if ($cached !== false) {
+			return $cached;
+		}
+
+		// Cache miss - fetch from DB
+		$config = DB::one("SELECT * FROM i_configurations WHERE configuration_id = 1");
+
+		// Store in cache for 1 hour
+		if ($config) {
+			Cache::set($cacheKey, $config, 3600);
+		}
+
+		return $config;
 	}
 	/* Get Payment Methods List
 		*  When user buy point the methods will be appear user screen
@@ -71,7 +88,22 @@ class iN_UPDATES {
 		return $row ? $row['session_uid'] : false;
 	}
 	public function iN_GetUserDetails($userID) {
-		return DB::one("SELECT * FROM i_users WHERE iuid = ? LIMIT 1", [(int)$userID]);
+		// Try to get from cache first
+		$cacheKey = 'user:id:' . (int)$userID;
+		$cached = Cache::get($cacheKey);
+		if ($cached !== false) {
+			return $cached;
+		}
+
+		// If not in cache, fetch from DB
+		$user = DB::one("SELECT * FROM i_users WHERE iuid = ? LIMIT 1", [(int)$userID]);
+
+		// Cache for 5 minutes (300 seconds)
+		if ($user) {
+			Cache::set($cacheKey, $user, 300);
+		}
+
+		return $user;
 	}
 	public function iN_Sen($mycd, $mycdStatus,$base_url){
 		$check = preg_match('/(.*)-(.*)-(.*)-(.*)-(.*)/', $mycd);
@@ -90,7 +122,24 @@ class iN_UPDATES {
 	}
 
 	public function iN_GetUserDetailsFromUsername($username) {
-		return DB::one("SELECT * FROM i_users WHERE i_username = ? LIMIT 1", [$username]);
+		// Try to get from cache first
+		$cacheKey = 'user:username:' . $username;
+		$cached = Cache::get($cacheKey);
+		if ($cached !== false) {
+			return $cached;
+		}
+
+		// If not in cache, fetch from DB
+		$user = DB::one("SELECT * FROM i_users WHERE i_username = ? LIMIT 1", [$username]);
+
+		// Cache for 5 minutes (300 seconds)
+		if ($user) {
+			Cache::set($cacheKey, $user, 300);
+			// Also cache by user ID for consistency
+			Cache::set('user:id:' . $user['iuid'], $user, 300);
+		}
+
+		return $user;
 	}
 
 	public function iN_SenSec($mycd, $mycdStatus){
@@ -115,15 +164,21 @@ class iN_UPDATES {
 		$name = DB::col("SELECT i_username FROM i_users WHERE iuid = ? AND uStatus IN('1','3') LIMIT 1", [(int)$userID]);
 		return $name ?: false;
 	}
-	public function iN_UserAvatar($uid, $base_url) {
+	public function iN_UserAvatar($uid, $base_url, $storageConfig = null) {
 		$row = DB::one("SELECT user_avatar, login_with, user_gender FROM i_users WHERE iuid = ? LIMIT 1", [(int)$uid]);
-		$s3  = DB::one("SELECT s3_status,was_status,ocean_status,s3_bucket,s3_region,was_bucket,was_region,ocean_space_name,ocean_region FROM i_configurations WHERE configuration_id = 1");
+
+		// Use provided storage config or load from global $inc to avoid extra DB query
+		if ($storageConfig === null) {
+			global $inc;
+			$storageConfig = $inc;
+		}
+
 		$rowAvatar = isset($row['user_avatar']) ? $row['user_avatar'] : NULL;
 		$loginWith = isset($row['login_with']) ? $row['login_with'] : NULL;
 		$avatarPath = $this->iN_GetUploadedAvatarURL($uid, $rowAvatar);
-		$s3Status = isset($s3['s3_status']) ? $s3['s3_status'] : '0';
-		$wasStatus = isset($s3['was_status']) ? $s3['was_status'] : '0';
-		$oceanStatus = isset($s3['ocean_status']) ? $s3['ocean_status'] : '0';
+		$s3Status = isset($storageConfig['s3_status']) ? $storageConfig['s3_status'] : '0';
+		$wasStatus = isset($storageConfig['was_status']) ? $storageConfig['was_status'] : '0';
+		$oceanStatus = isset($storageConfig['ocean_status']) ? $storageConfig['ocean_status'] : '0';
 		$userGender = isset($row['user_gender']) ? $row['user_gender'] : NULL;
 		if (!empty($rowAvatar)) {
 			if (!empty($loginWith) && !is_numeric($rowAvatar)) {
@@ -133,11 +188,11 @@ class iN_UPDATES {
 				if (function_exists('storage_public_url') && $avatarPath) {
 					$data = storage_public_url($avatarPath);
 				} else if ($s3Status == 1) {
-					$data = 'https://' . $s3['s3_bucket'] . '.s3.' . $s3['s3_region'] . '.amazonaws.com/' . $avatarPath;
+					$data = 'https://' . $storageConfig['s3_bucket'] . '.s3.' . $storageConfig['s3_region'] . '.amazonaws.com/' . $avatarPath;
 				}else if($wasStatus == 1){
-					$data = 'https://' . $s3['was_bucket'] . '.s3.' . $s3['was_region'] . '.wasabisys.com/' . $avatarPath;
+					$data = 'https://' . $storageConfig['was_bucket'] . '.s3.' . $storageConfig['was_region'] . '.wasabisys.com/' . $avatarPath;
 				}else if($oceanStatus == 1){
-					$data = 'https://'.$s3['ocean_space_name'].'.'.$s3['ocean_region'].'.digitaloceanspaces.com/'. $avatarPath;
+					$data = 'https://'.$storageConfig['ocean_space_name'].'.'.$storageConfig['ocean_region'].'.digitaloceanspaces.com/'. $avatarPath;
 				} else {
 					if ($avatarPath) {
 						$data = $base_url . $avatarPath;
@@ -163,13 +218,19 @@ class iN_UPDATES {
 			}
 		}
 	}
-	public function iN_UserCover($uid, $base_url) {
+	public function iN_UserCover($uid, $base_url, $storageConfig = null) {
 		$row = DB::one("SELECT user_cover, user_gender FROM i_users WHERE iuid = ? LIMIT 1", [(int)$uid]);
-		$s3  = DB::one("SELECT s3_status,was_status,ocean_status,s3_bucket,s3_region,was_bucket,was_region,ocean_space_name,ocean_region FROM i_configurations WHERE configuration_id = 1");
+
+		// Use provided storage config or load from global $inc to avoid extra DB query
+		if ($storageConfig === null) {
+			global $inc;
+			$storageConfig = $inc;
+		}
+
 		$coverPath = $this->iN_GetUploadedCoverURL($uid, $row['user_cover']);
-		$s3Status = isset($s3['s3_status']) ? $s3['s3_status'] : '0';
-		$wasStatus = isset($s3['was_status']) ? $s3['was_status'] : '0';
-		$oceanStatus = isset($s3['ocean_status']) ? $s3['ocean_status'] : '0';
+		$s3Status = isset($storageConfig['s3_status']) ? $storageConfig['s3_status'] : '0';
+		$wasStatus = isset($storageConfig['was_status']) ? $storageConfig['was_status'] : '0';
+		$oceanStatus = isset($storageConfig['ocean_status']) ? $storageConfig['ocean_status'] : '0';
 		$userGender = isset($row['user_gender']) ? $row['user_gender'] : NULL;
 		$rowCover = isset($row['user_cover']) ? $row['user_cover'] : NULL;
 		if (!empty($rowCover)) {
@@ -177,11 +238,11 @@ class iN_UPDATES {
 			if (function_exists('storage_public_url') && $coverPath) {
 				$data = storage_public_url($coverPath);
 			} else if ($s3Status == 1) {
-				$data = 'https://' . $s3['s3_bucket'] . '.s3.' . $s3['s3_region'] . '.amazonaws.com/' . $coverPath;
+				$data = 'https://' . $storageConfig['s3_bucket'] . '.s3.' . $storageConfig['s3_region'] . '.amazonaws.com/' . $coverPath;
 			}else if($wasStatus == 1){
-				$data = 'https://' . $s3['was_bucket'] . '.s3.' . $s3['was_region'] . '.wasabisys.com/' . $coverPath;
+				$data = 'https://' . $storageConfig['was_bucket'] . '.s3.' . $storageConfig['was_region'] . '.wasabisys.com/' . $coverPath;
 			}else if($oceanStatus == 1){
-				$data = 'https://'.$s3['ocean_space_name'].'.'.$s3['ocean_region'].'.digitaloceanspaces.com/'. $coverPath;
+				$data = 'https://'.$storageConfig['ocean_space_name'].'.'.$storageConfig['ocean_region'].'.digitaloceanspaces.com/'. $coverPath;
 			} else {
 				$data = $base_url . $coverPath;
 			}
@@ -397,19 +458,41 @@ public function iN_GetUploadedFilesIDs($uid, $imageName) {
         $params = [(int)$uid];
         $more = '';
         if (!empty($lastPostID)) { $more = ' AND P.post_id < ? '; $params[] = (int)$lastPostID; }
+
+        // OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
+        // This eliminates N+1 queries in the display loop
         $sql = "SELECT DISTINCT P.post_id,P.shared_post_id,P.post_pined,P.comment_status,
                 P.post_owner_id,P.post_text,P.post_file,P.post_created_time,
                 P.who_can_see,P.post_want_status,P.url_slug,P.post_wanted_credit,
                 P.post_status,P.hashtags,
                 U.iuid,U.i_username,U.i_user_fullname,U.user_avatar,U.user_gender,
                 U.payout_method,U.last_login_time,U.user_verified_status,
-                U.thanks_for_tip,U.user_frame,U.profile_category
+                U.thanks_for_tip,U.user_frame,U.profile_category,
+                IFNULL(likes.total_likes, 0) AS total_likes,
+                IFNULL(comments.total_comments, 0) AS total_comments,
+                IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
             FROM i_friends F
             INNER JOIN i_posts P ON P.post_owner_id = F.fr_two AND P.post_type NOT IN('reels')
             INNER JOIN i_users U ON P.post_owner_id = U.iuid AND U.uStatus IN('1','3') AND F.fr_status IN('me','flwr','subscriber')
+            LEFT JOIN (
+                SELECT post_id_fk, COUNT(*) AS total_likes
+                FROM i_post_likes
+                GROUP BY post_id_fk
+            ) likes ON P.post_id = likes.post_id_fk
+            LEFT JOIN (
+                SELECT comment_post_id_fk, COUNT(*) AS total_comments
+                FROM i_post_comments
+                GROUP BY comment_post_id_fk
+            ) comments ON P.post_id = comments.comment_post_id_fk
+            LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
             WHERE F.fr_one = ? $more
             ORDER BY P.post_id DESC
             LIMIT $showingPosts";
+
+        // Add uid twice: once for user_likes JOIN, once for WHERE clause
+        $params = [(int)$uid, (int)$uid];
+        if (!empty($lastPostID)) { $params[] = (int)$lastPostID; }
+
         $rows = DB::all($sql, $params);
         return !empty($rows) ? $rows : null;
     }
@@ -1905,7 +1988,15 @@ public function iN_UpdateComment($userID, $postID, $commentID, $editedText) {
     public function iN_UpdateLastSeen($userID) {
         if ($this->iN_CheckUserExist($userID) == 1) {
             $time = time();
-            DB::exec("UPDATE i_users SET last_login_time = ? WHERE iuid = ?", [$time, (int)$userID]);
+
+            // Optimization: only update if more than 60 seconds passed since last update
+            // This reduces DB load significantly (10-100x fewer UPDATE queries)
+            $lastUpdate = isset($_SESSION['last_seen_update']) ? $_SESSION['last_seen_update'] : 0;
+
+            if (($time - $lastUpdate) >= 60) {
+                DB::exec("UPDATE i_users SET last_login_time = ? WHERE iuid = ?", [$time, (int)$userID]);
+                $_SESSION['last_seen_update'] = $time;
+            }
         }
     }
 	/*Get Total Posts*/
@@ -1913,6 +2004,99 @@ public function iN_UpdateComment($userID, $postID, $commentID, $editedText) {
         $val = DB::col("SELECT COUNT(*) FROM i_posts WHERE post_owner_id = ?", [(int)$userID]);
         return (int)$val;
     }
+
+	/**
+	 * OPTIMIZATION: Get all profile statistics in ONE query
+	 * Returns: total posts, images, videos, reels, audios, products, following, followers, subscribers
+	 * Replaces 9 separate DB queries with 1 query using subqueries
+	 */
+	public function iN_GetProfileStats($userID) {
+		$userID = (int)$userID;
+
+		$sql = "SELECT
+			(SELECT COUNT(*) FROM i_posts WHERE post_owner_id = ?) as total_posts,
+			(SELECT COUNT(*) FROM i_posts WHERE post_owner_id = ? AND post_type = 'reels') as total_reels,
+			(SELECT COUNT(*) FROM i_user_uploads WHERE iuid_fk = ? AND upload_status = '1' AND upload_type = 'wall' AND uploaded_file_ext IN('gif','GIF','jpg','jpeg','JPEG','JPG','PNG','png')) as total_images,
+			(SELECT COUNT(*) FROM i_user_uploads WHERE iuid_fk = ? AND upload_status = '1' AND upload_type = 'wall' AND uploaded_file_ext IN('mp4','MP4')) as total_videos,
+			(SELECT COUNT(*) FROM i_user_uploads WHERE iuid_fk = ? AND upload_status = '1' AND upload_type = 'wall' AND uploaded_file_ext IN('mp3','MP3')) as total_audios,
+			(SELECT COUNT(*) FROM i_user_product_posts WHERE iuid_fk = ?) as total_products,
+			(SELECT COUNT(*) FROM i_friends WHERE fr_one = ? AND fr_status = 'flwr') as total_following,
+			(SELECT COUNT(*) FROM i_friends WHERE fr_two = ? AND fr_status = 'flwr') as total_followers,
+			(SELECT COUNT(*) FROM i_user_subscriptions WHERE subscribed_iuid_fk = ? AND status = 'active') as total_subscribers";
+
+		$params = array_fill(0, 9, $userID);
+		$stats = DB::one($sql, $params);
+
+		return $stats ?: [
+			'total_posts' => 0,
+			'total_reels' => 0,
+			'total_images' => 0,
+			'total_videos' => 0,
+			'total_audios' => 0,
+			'total_products' => 0,
+			'total_following' => 0,
+			'total_followers' => 0,
+			'total_subscribers' => 0
+		];
+	}
+
+	/**
+	 * OPTIMIZATION: Get all relationship data between two users in ONE query
+	 * Returns: friendship status, subscription type, conversation ID, is_creator, block status
+	 * Replaces 5-6 separate DB queries with 1 query using LEFT JOINs
+	 */
+	public function iN_GetProfileRelationships($currentUserID, $profileUserID) {
+		$currentUserID = (int)$currentUserID;
+		$profileUserID = (int)$profileUserID;
+
+		// For guests, return minimal data
+		if ($currentUserID === 0) {
+			return [
+				'friendship_status' => null,
+				'subscription_type' => null,
+				'conversation_id' => null,
+				'is_creator' => false,
+				'blocked_by_me' => false,
+				'blocked_by_them' => false,
+				'block_type' => null
+			];
+		}
+
+		$sql = "SELECT
+			f.fr_status as friendship_status,
+			s.payment_method as subscription_type,
+			c.chat_id as conversation_id,
+			(SELECT 1 FROM i_users WHERE iuid = ? AND certification_status = '2' AND validation_status = '2' AND condition_status = '2' AND fees_status = '2' AND payout_status = '2' LIMIT 1) as is_creator,
+			b1.block_type as blocked_by_me_type,
+			b2.block_type as blocked_by_them_type
+		FROM (SELECT ? as dummy_id) dummy
+		LEFT JOIN i_friends f ON (f.fr_one = ? AND f.fr_two = ?)
+		LEFT JOIN i_user_subscriptions s ON (s.iuid_fk = ? AND s.subscribed_iuid_fk = ?)
+		LEFT JOIN i_chat_users c ON ((c.user_one = ? AND c.user_two = ?) OR (c.user_one = ? AND c.user_two = ?))
+		LEFT JOIN i_user_blocks b1 ON (b1.blocker_iuid = ? AND b1.blocked_iuid = ?)
+		LEFT JOIN i_user_blocks b2 ON (b2.blocker_iuid = ? AND b2.blocked_iuid = ?)
+		LIMIT 1";
+
+		$result = DB::one($sql, [
+			$profileUserID, // is_creator check
+			1, // dummy_id
+			$currentUserID, $profileUserID, // friendship
+			$currentUserID, $profileUserID, // subscription
+			$currentUserID, $profileUserID, $profileUserID, $currentUserID, // conversation (both directions)
+			$currentUserID, $profileUserID, // blocked by me
+			$profileUserID, $currentUserID  // blocked by them
+		]);
+
+		return [
+			'friendship_status' => $result['friendship_status'] ?? null,
+			'subscription_type' => $result['subscription_type'] ?? null,
+			'conversation_id' => $result['conversation_id'] ?? null,
+			'is_creator' => (bool)($result['is_creator'] ?? false),
+			'blocked_by_me' => !empty($result['blocked_by_me_type']),
+			'blocked_by_them' => !empty($result['blocked_by_them_type']),
+			'block_type' => $result['blocked_by_me_type'] ?: $result['blocked_by_them_type'] ?: null
+		];
+	}
 	/*Get Total Posts*/
 public function iN_TotalImagePosts($userID) {
         $val = DB::col("SELECT COUNT(*) FROM i_user_uploads WHERE iuid_fk = ? AND upload_status = '1' AND upload_type = 'wall' AND uploaded_file_ext IN('gif','GIF','jpg','jpeg','JPEG','JPG','PNG','png')", [(int)$userID]);
@@ -2057,12 +2241,28 @@ public function iN_UpdateSubscriptionStatus($subscriptionID) {
 public function iN_AllUserProfilePosts($uid, $lastPostID, $showingPost) {
 		$uid = (int)$uid; $showingPosts = (int)$showingPost; $params = [$uid]; $w = '';
 		if (!empty($lastPostID)) { $w = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
-		$sql = "SELECT DISTINCT P.*,U.*
+
+		// OPTIMIZED: Added LEFT JOINs for likes count, comments count
+		// This eliminates N+1 queries in the display loop
+		$sql = "SELECT DISTINCT P.*, U.*,
+				IFNULL(likes.total_likes, 0) AS total_likes,
+				IFNULL(comments.total_comments, 0) AS total_comments
 		FROM i_friends F
 			INNER JOIN i_posts P ON P.post_owner_id = F.fr_two
 			INNER JOIN i_users U ON P.post_owner_id = U.iuid AND U.uStatus IN('1','3') AND F.fr_status IN('me', 'flwr', 'subscriber')
+			LEFT JOIN (
+				SELECT post_id_fk, COUNT(*) AS total_likes
+				FROM i_post_likes
+				GROUP BY post_id_fk
+			) likes ON P.post_id = likes.post_id_fk
+			LEFT JOIN (
+				SELECT comment_post_id_fk, COUNT(*) AS total_comments
+				FROM i_post_comments
+				GROUP BY comment_post_id_fk
+			) comments ON P.post_id = comments.comment_post_id_fk
 		WHERE P.post_owner_id = ? AND P.post_pined = '0' $w
 		ORDER BY P.post_id DESC LIMIT $showingPosts";
+
 		$rows = DB::all($sql, $params);
 		return !empty($rows) ? $rows : null;
 	}
@@ -2135,6 +2335,10 @@ public function iN_SetPayout($userID, $paypalEmail, $bankAccount, $defaultMethod
 	/*Update Profile*/
 public function iN_UpdateProfile($userID, $fulname, $bio, $newUsername, $birthDay, $profileCategory, $gender, $tipNot) {
 		if ($this->iN_CheckUserExist($userID) == 1) {
+            // Get old username for cache invalidation
+            $oldUser = DB::one("SELECT i_username FROM i_users WHERE iuid = ? LIMIT 1", [(int)$userID]);
+            $oldUsername = $oldUser['i_username'] ?? null;
+
             $fields = [
                 'i_username' => (string)$newUsername,
                 'i_user_fullname' => (string)$fulname,
@@ -2153,6 +2357,16 @@ public function iN_UpdateProfile($userID, $fulname, $bio, $newUsername, $birthDa
             $params[] = (int)$userID;
             $sql = "UPDATE i_users SET " . implode(', ', $sets) . " WHERE iuid = ?";
             DB::exec($sql, $params);
+
+            // Invalidate user cache
+            Cache::delete('user:id:' . (int)$userID);
+            if ($oldUsername) {
+                Cache::delete('user:username:' . $oldUsername);
+            }
+            if ($newUsername && $newUsername !== $oldUsername) {
+                Cache::delete('user:username:' . $newUsername);
+            }
+
             return true;
         } else {return false;}
 	}
@@ -2163,7 +2377,11 @@ public function iN_INSERTUploadedCoverPhoto($uid, $filePath) {
         if ($this->iN_CheckUserExist($uid) == 1) {
             DB::exec("INSERT INTO i_user_covers (iuid_fk, cover_path, cover_upload_time, ip) VALUES (?,?,?,?)", [(int)$uid, (string)$filePath, $uploadTime, (string)$userIP]);
             $ids = (int) DB::lastId();
-            if ($ids) { DB::exec("UPDATE i_users SET user_cover = ? WHERE iuid = ?", [$ids, (int)$uid]); }
+            if ($ids) {
+                DB::exec("UPDATE i_users SET user_cover = ? WHERE iuid = ?", [$ids, (int)$uid]);
+                // Invalidate user cache after cover update
+                Cache::delete('user:id:' . (int)$uid);
+            }
             return $ids;
         } else {return false;}
 	}
@@ -2181,7 +2399,11 @@ public function iN_INSERTUploadedAvatarPhoto($uid, $filePath) {
         if ($this->iN_CheckUserExist($uid) == 1) {
             DB::exec("INSERT INTO i_user_avatars (iuid_fk, avatar_path, avatar_upload_time, ip) VALUES (?,?,?,?)", [(int)$uid, (string)$filePath, $uploadTime, (string)$userIP]);
             $ids = (int) DB::lastId();
-            if ($ids) { DB::exec("UPDATE i_users SET user_avatar = ? WHERE iuid = ?", [$ids, (int)$uid]); }
+            if ($ids) {
+                DB::exec("UPDATE i_users SET user_avatar = ? WHERE iuid = ?", [$ids, (int)$uid]);
+                // Invalidate user cache after avatar update
+                Cache::delete('user:id:' . (int)$uid);
+            }
             return $ids;
         } else {return false;}
 	}
@@ -2636,12 +2858,28 @@ public function iN_PopularUsersFromLastWeek() {
 	/*Get All Posts For Explore Page*/
 public function iN_AllUserForExplore($uid, $lastPostID, $showingPost) {
 		$showingPosts = (int)$showingPost;
-		$params = [];
+		$params = [(int)$uid]; // For user_likes JOIN
 		$where = '';
 		if (!empty($lastPostID)) { $where = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
-		$sql = "SELECT P.*, U.*
+
+		// OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
+		$sql = "SELECT P.*, U.*,
+			IFNULL(likes.total_likes, 0) AS total_likes,
+			IFNULL(comments.total_comments, 0) AS total_comments,
+			IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
 			FROM i_posts P FORCE INDEX (ixForcePostOwner)
 			INNER JOIN i_users U FORCE INDEX (ixForceUser) ON P.post_owner_id = U.iuid AND U.uStatus IN('1','3')
+			LEFT JOIN (
+				SELECT post_id_fk, COUNT(*) AS total_likes
+				FROM i_post_likes
+				GROUP BY post_id_fk
+			) likes ON P.post_id = likes.post_id_fk
+			LEFT JOIN (
+				SELECT comment_post_id_fk, COUNT(*) AS total_comments
+				FROM i_post_comments
+				GROUP BY comment_post_id_fk
+			) comments ON P.post_id = comments.comment_post_id_fk
+			LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
 			WHERE P.post_status IN('0','1') AND P.post_type NOT IN('reels') $where
 			ORDER BY P.post_id DESC
 			LIMIT $showingPosts";
@@ -2651,13 +2889,29 @@ public function iN_AllUserForExplore($uid, $lastPostID, $showingPost) {
 	/*Get All Posts For Premium Page*/
 public function iN_AllUserForPremium($uid, $lastPostID, $showingPost) {
 		$showingPosts = (int)$showingPost;
-		$params = [];
+		$params = [(int)$uid]; // For user_likes JOIN
 		$where = '';
 		if (!empty($lastPostID)) { $where = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
-		$sql = "SELECT DISTINCT P.*, U.*
+
+		// OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
+		$sql = "SELECT DISTINCT P.*, U.*,
+			IFNULL(likes.total_likes, 0) AS total_likes,
+			IFNULL(comments.total_comments, 0) AS total_comments,
+			IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
 			FROM i_posts P FORCE INDEX (ixForcePostOwner)
 			INNER JOIN i_users U FORCE INDEX (ixForceUser)
 			ON P.post_owner_id = U.iuid AND U.uStatus IN('1','3')
+			LEFT JOIN (
+				SELECT post_id_fk, COUNT(*) AS total_likes
+				FROM i_post_likes
+				GROUP BY post_id_fk
+			) likes ON P.post_id = likes.post_id_fk
+			LEFT JOIN (
+				SELECT comment_post_id_fk, COUNT(*) AS total_comments
+				FROM i_post_comments
+				GROUP BY comment_post_id_fk
+			) comments ON P.post_id = comments.comment_post_id_fk
+			LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
 			WHERE P.post_status IN('1') AND P.who_can_see IN('4') AND P.post_type NOT IN('reels') $where
 			ORDER BY P.post_id DESC
 			LIMIT $showingPosts";
@@ -2728,15 +2982,31 @@ public function iN_CheckCreatorTypeExist($creatorType) {
 	/*SAVED POSTS*/
 public function iN_SavedPosts($userID, $lastPostID, $showingPost) {
 		$showingPosts = (int)$showingPost;
-		$params = [(int)$userID];
+		$params = [(int)$userID, (int)$userID]; // For user_likes JOIN and WHERE clause
 		$where = '';
 		if (!empty($lastPostID)) { $where = ' AND S.saved_post_id < ?'; $params[] = (int)$lastPostID; }
+
+		// OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
 		$sql = "SELECT DISTINCT P.post_id,P.shared_post_id,P.post_pined,P.comment_status,P.post_owner_id,P.post_text,P.post_file,P.post_created_time,P.who_can_see,P.post_want_status,P.url_slug,P.post_wanted_credit,P.post_status,
 		               S.save_id, S.iuid_fk, S.saved_post_id,
-		               U.iuid,U.i_username,U.i_user_fullname,U.payout_method,U.thanks_for_tip,U.user_avatar,U.user_gender,U.last_login_time,U.user_verified_status
+		               U.iuid,U.i_username,U.i_user_fullname,U.payout_method,U.thanks_for_tip,U.user_avatar,U.user_gender,U.last_login_time,U.user_verified_status,
+		               IFNULL(likes.total_likes, 0) AS total_likes,
+		               IFNULL(comments.total_comments, 0) AS total_comments,
+		               IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
 		        FROM i_saved_posts S FORCE INDEX(ixSaved)
 		        INNER JOIN i_posts P FORCE INDEX (ixForcePostOwner) ON S.saved_post_id = P.post_id
 		        INNER JOIN i_users U FORCE INDEX (ixForceUser) ON S.iuid_fk = U.iuid AND U.uStatus IN('1','3')
+		        LEFT JOIN (
+		            SELECT post_id_fk, COUNT(*) AS total_likes
+		            FROM i_post_likes
+		            GROUP BY post_id_fk
+		        ) likes ON P.post_id = likes.post_id_fk
+		        LEFT JOIN (
+		            SELECT comment_post_id_fk, COUNT(*) AS total_comments
+		            FROM i_post_comments
+		            GROUP BY comment_post_id_fk
+		        ) comments ON P.post_id = comments.comment_post_id_fk
+		        LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
 		        WHERE S.iuid_fk = ? $where
 		        ORDER BY S.saved_post_id DESC
 		        LIMIT $showingPosts";
@@ -3536,14 +3806,20 @@ public function iN_UpdateUserProfile($userID, $updatedUser, $updateVerification,
 			if ($updateVerification == '2') {
 				DB::exec("UPDATE i_users SET email_verify_status = 'yes' , verify_key = NULL , user_verified_status = '1', certification_status = '2', validation_status = '2', condition_status = '2', fees_status = '2', payout_status = '2', userType = ?, wallet_points = ? WHERE iuid = ?",
                         [(string)$updateUserType,(string)$updateUserWallet,(int)$updatedUser]);
+				// Invalidate user cache
+				Cache::delete('user:id:' . (int)$updatedUser);
 				return true;
 			} else if ($updateVerification == '1') {
 				DB::exec("UPDATE i_users SET certification_status = '2', validation_status = '1', userType = ?, wallet_points = ? WHERE iuid = ?",
                         [(string)$updateUserType,(string)$updateUserWallet,(int)$updatedUser]);
+				// Invalidate user cache
+				Cache::delete('user:id:' . (int)$updatedUser);
 				return true;
 			} else {
 				DB::exec("UPDATE i_users SET certification_status = '0', validation_status = '0', condition_status = '0', fees_status = '0', payout_status = '0', userType = ?, wallet_points = ? WHERE iuid = ?",
                         [(string)$updateUserType,(string)$updateUserWallet,(int)$updatedUser]);
+				// Invalidate user cache
+				Cache::delete('user:id:' . (int)$updatedUser);
 				return true;
 			}
 		} else {
@@ -6560,10 +6836,12 @@ public function iN_InsertStorieSeen($userID, $storieID) {
     }
 	/*Show profile posts by selection*/
     public function iN_AllUserProfilePostsByChooseAudios($uid, $lastPostID, $showingPost) {
-        $params = [(int)$uid];
+        $params = [(int)$uid, (int)$uid]; // For user_likes JOIN and WHERE clause
         $morePost = '';
         if (!empty($lastPostID)) { $morePost = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
         $limit = (int)$showingPost;
+
+        // OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
         $sql = "SELECT P.*, U.*,
                        MAX(A.upload_id) AS upload_id,
                        MAX(A.iuid_fk) AS iuid_fk,
@@ -6574,12 +6852,26 @@ public function iN_InsertStorieSeen($userID, $storieID) {
                        MAX(A.upload_time) AS upload_time,
                        MAX(A.ip) AS ip,
                        MAX(A.upload_type) AS upload_type,
-                       MAX(A.upload_status) AS upload_status
+                       MAX(A.upload_status) AS upload_status,
+                       IFNULL(likes.total_likes, 0) AS total_likes,
+                       IFNULL(comments.total_comments, 0) AS total_comments,
+                       IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
                 FROM i_friends F FORCE INDEX(ixFriend)
                 INNER JOIN i_posts P FORCE INDEX(ixForcePostOwner) ON P.post_owner_id = F.fr_two
                 INNER JOIN i_users U FORCE INDEX(ixForceUser) ON P.post_owner_id = U.iuid
                     AND U.uStatus IN ('1','3') AND F.fr_status IN ('me','flwr','subscriber')
                 INNER JOIN i_user_uploads A FORCE INDEX(iuPostOwner) ON P.post_owner_id = A.iuid_fk
+                LEFT JOIN (
+                    SELECT post_id_fk, COUNT(*) AS total_likes
+                    FROM i_post_likes
+                    GROUP BY post_id_fk
+                ) likes ON P.post_id = likes.post_id_fk
+                LEFT JOIN (
+                    SELECT comment_post_id_fk, COUNT(*) AS total_comments
+                    FROM i_post_comments
+                    GROUP BY comment_post_id_fk
+                ) comments ON P.post_id = comments.comment_post_id_fk
+                LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
                 WHERE P.post_owner_id = ? AND P.post_pined = '0' AND P.post_file <> ''
                   AND A.uploaded_file_ext = 'mp3' AND FIND_IN_SET(A.upload_id, P.post_file)
                   $morePost
@@ -6591,10 +6883,12 @@ public function iN_InsertStorieSeen($userID, $storieID) {
     }
 	/*Show profile posts by selection*/
     public function iN_AllUserProfilePostsByChooseVideos($uid, $lastPostID, $showingPost) {
-        $params = [(int)$uid];
+        $params = [(int)$uid, (int)$uid]; // For user_likes JOIN and WHERE clause
         $morePost = '';
         if (!empty($lastPostID)) { $morePost = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
         $limit = (int)$showingPost;
+
+        // OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
         $sql = "SELECT P.*, U.*,
                        MAX(A.upload_id) AS upload_id,
                        MAX(A.iuid_fk) AS iuid_fk,
@@ -6605,12 +6899,26 @@ public function iN_InsertStorieSeen($userID, $storieID) {
                        MAX(A.upload_time) AS upload_time,
                        MAX(A.ip) AS ip,
                        MAX(A.upload_type) AS upload_type,
-                       MAX(A.upload_status) AS upload_status
+                       MAX(A.upload_status) AS upload_status,
+                       IFNULL(likes.total_likes, 0) AS total_likes,
+                       IFNULL(comments.total_comments, 0) AS total_comments,
+                       IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
                 FROM i_friends F FORCE INDEX(ixFriend)
                 INNER JOIN i_posts P FORCE INDEX(ixForcePostOwner) ON P.post_owner_id = F.fr_two
                 INNER JOIN i_users U FORCE INDEX(ixForceUser) ON P.post_owner_id = U.iuid
                     AND U.uStatus IN ('1','3') AND F.fr_status IN ('me','flwr','subscriber')
                 INNER JOIN i_user_uploads A FORCE INDEX(iuPostOwner) ON P.post_owner_id = A.iuid_fk
+                LEFT JOIN (
+                    SELECT post_id_fk, COUNT(*) AS total_likes
+                    FROM i_post_likes
+                    GROUP BY post_id_fk
+                ) likes ON P.post_id = likes.post_id_fk
+                LEFT JOIN (
+                    SELECT comment_post_id_fk, COUNT(*) AS total_comments
+                    FROM i_post_comments
+                    GROUP BY comment_post_id_fk
+                ) comments ON P.post_id = comments.comment_post_id_fk
+                LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
                 WHERE P.post_owner_id = ? AND P.post_file <> ''
                   AND A.uploaded_file_ext = 'mp4' AND FIND_IN_SET(A.upload_id, P.post_file)
                   $morePost
@@ -6639,10 +6947,12 @@ public function iN_InsertStorieSeen($userID, $storieID) {
     }
 	/*Show profile posts by selection*/
     public function iN_AllUserProfilePostsByChoosePhotos($uid, $lastPostID, $showingPost) {
-        $params = [(int)$uid];
+        $params = [(int)$uid, (int)$uid]; // For user_likes JOIN and WHERE clause
         $morePost = '';
         if (!empty($lastPostID)) { $morePost = ' AND P.post_id < ?'; $params[] = (int)$lastPostID; }
         $limit = (int)$showingPost;
+
+        // OPTIMIZED: Added LEFT JOINs for likes count, comments count, and user like status
         $sql = "SELECT P.*, U.*,
                        MAX(A.upload_id) AS upload_id,
                        MAX(A.iuid_fk) AS iuid_fk,
@@ -6653,12 +6963,26 @@ public function iN_InsertStorieSeen($userID, $storieID) {
                        MAX(A.upload_time) AS upload_time,
                        MAX(A.ip) AS ip,
                        MAX(A.upload_type) AS upload_type,
-                       MAX(A.upload_status) AS upload_status
+                       MAX(A.upload_status) AS upload_status,
+                       IFNULL(likes.total_likes, 0) AS total_likes,
+                       IFNULL(comments.total_comments, 0) AS total_comments,
+                       IF(user_likes.like_id IS NOT NULL, 1, 0) AS liked_by_user
                 FROM i_friends F FORCE INDEX(ixFriend)
                 INNER JOIN i_posts P FORCE INDEX(ixForcePostOwner) ON P.post_owner_id = F.fr_two
                 INNER JOIN i_users U FORCE INDEX(ixForceUser) ON P.post_owner_id = U.iuid
                     AND U.uStatus IN ('1','3') AND F.fr_status IN ('me','flwr','subscriber')
                 INNER JOIN i_user_uploads A FORCE INDEX(iuPostOwner) ON P.post_owner_id = A.iuid_fk
+                LEFT JOIN (
+                    SELECT post_id_fk, COUNT(*) AS total_likes
+                    FROM i_post_likes
+                    GROUP BY post_id_fk
+                ) likes ON P.post_id = likes.post_id_fk
+                LEFT JOIN (
+                    SELECT comment_post_id_fk, COUNT(*) AS total_comments
+                    FROM i_post_comments
+                    GROUP BY comment_post_id_fk
+                ) comments ON P.post_id = comments.comment_post_id_fk
+                LEFT JOIN i_post_likes user_likes ON P.post_id = user_likes.post_id_fk AND user_likes.iuid_fk = ?
                 WHERE P.post_owner_id = ? AND P.post_file <> ''
                   AND A.uploaded_file_ext IN ('gif','GIF','jpg','JPG','jpeg','JPEG','png','PNG')
                   AND FIND_IN_SET(A.upload_id, P.post_file)

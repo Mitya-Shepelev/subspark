@@ -55,9 +55,19 @@ include_once "linkify/autoload.php";
 include_once "_expand.php";
 include_once "csrf.php";
 include_once "db.php";
+include_once "cache.php";
 
-// Stripe library autoload
-require_once 'stripe/vendor/autoload.php';
+// Stripe library lazy-loader function
+// Only loads Stripe when needed, reducing initial load time
+if (!function_exists('loadStripe')) {
+    function loadStripe() {
+        static $loaded = false;
+        if (!$loaded) {
+            require_once __DIR__ . '/stripe/vendor/autoload.php';
+            $loaded = true;
+        }
+    }
+}
 
 // URL highlighter library usage
 use VStelmakh\UrlHighlight\UrlHighlight;

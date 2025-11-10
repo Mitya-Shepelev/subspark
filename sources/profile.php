@@ -23,8 +23,11 @@ if($p_profileID != $userID){
 }
 $p_profileAvatar = $iN->iN_UserAvatar($p_profileID, $base_url);
 $p_profileCover = $iN->iN_UserCover($p_profileID, $base_url);
-$p_friend_status = $iN->iN_GetRelationsipBetweenTwoUsers($userID, $p_profileID);
-$p_subscription_type = $iN->iN_CheckProfileSubscriptionType($userID, $p_profileID);
+
+// OPTIMIZATION: Get all relationship data in ONE query instead of 5-6 separate queries
+$relationships = $iN->iN_GetProfileRelationships($userID, $p_profileID);
+$p_friend_status = $relationships['friendship_status'];
+$p_subscription_type = $relationships['subscription_type'];
 $p_userGender = $profileData['user_gender'];
 $p_VerifyStatus = $profileData['user_verified_status'];
 $p_lastSeen = $profileData['last_login_time'];
@@ -82,16 +85,21 @@ if($p_profileStatus == '2'){
   $p_is_creator = '<div class="creator_badge">'.$iN->iN_SelectedMenuIcon('9').'</div>';
 }
 $profileUrl = $base_url.$p_username;
-$totalPost = $iN->iN_TotalPosts($p_profileID);
-$totalImagePost = $iN->iN_TotalImagePosts($p_profileID);
-$totalVideoPosts = $iN->iN_TotalVideoPosts($p_profileID);
-$totalReelsPosts = $iN->iN_TotalReelsPosts($p_profileID);
-$totalAudioPosts = $iN->iN_TotalAudioPosts($p_profileID);
-$totalProducts = $iN->iN_TotalProductByUser($p_profileID);
-$totalFollowingUsers = $iN->iN_UserTotalFollowingUsers($p_profileID);
-$totalFollowerUsers = $iN->iN_UserTotalFollowerUsers($p_profileID);
-$totalSubscribers = $iN->iN_UserTotalSubscribers($p_profileID);
-$checkUserisCreator = $iN->iN_CheckUserIsCreator($p_profileID);
+
+// OPTIMIZATION: Get all profile stats in ONE query instead of 9 separate queries
+$profileStats = $iN->iN_GetProfileStats($p_profileID);
+$totalPost = $profileStats['total_posts'];
+$totalImagePost = $profileStats['total_images'];
+$totalVideoPosts = $profileStats['total_videos'];
+$totalReelsPosts = $profileStats['total_reels'];
+$totalAudioPosts = $profileStats['total_audios'];
+$totalProducts = $profileStats['total_products'];
+$totalFollowingUsers = $profileStats['total_following'];
+$totalFollowerUsers = $profileStats['total_followers'];
+$totalSubscribers = $profileStats['total_subscribers'];
+
+// Use is_creator from relationships query
+$checkUserisCreator = $relationships['is_creator'];
 if($p_friend_status == 'flwr'){
    $flwrBtn = 'i_btn_like_item_flw f_p_follow';
    $flwBtnIconText = $iN->iN_SelectedMenuIcon('66').$LANG['unfollow'];
@@ -116,7 +124,8 @@ $sendMessage = '';
 if($p_MessageCanSend == '1'){
    $sendMessage = '<div class="i_btn_item transition"><div class="newMessageMe flex_ tabing ownTooltip" data-label="'.iN_HelpSecure($LANG['send_message']).'" id="'.$p_profileID.'">'.$iN->iN_SelectedMenuIcon('38').'</div></div>';
    if($logedIn == 1){
-     $checkChatStartedBefore = $iN->iN_GetConverationID($userID, $p_profileID);
+     // Use conversation_id from relationships query
+     $checkChatStartedBefore = $relationships['conversation_id'];
      if($checkChatStartedBefore){
          if($p_who_can_message == '1' && $p_friend_status != 'subscriber'){
             if($checkUserisCreator){
@@ -137,13 +146,14 @@ if($logedIn == 0){
 }
 $blockedType ='';
 if($userID != $p_profileID){
-   $checkUserinBlockedList = $iN->iN_CheckUserBlocked($userID, $p_profileID);
-   $checkVisitedProfileBlockedVisitor = $iN->iN_CheckUserBlockedVisitor($p_profileID, $userID);
-   if($checkUserinBlockedList == '1'){
-      $blockedType = $iN->iN_GetUserBlockedType($userID, $p_profileID);
+   // Use block status from relationships query
+   $checkUserinBlockedList = $relationships['blocked_by_me'];
+   $checkVisitedProfileBlockedVisitor = $relationships['blocked_by_them'];
+   if($checkUserinBlockedList){
+      $blockedType = $relationships['block_type'];
       $sendMessage = '';
-   }else if($checkVisitedProfileBlockedVisitor == '1'){
-      $blockedType = $iN->iN_GetUserBlockedType($p_profileID, $userID);
+   }else if($checkVisitedProfileBlockedVisitor){
+      $blockedType = $relationships['block_type'];
       $sendMessage = '';
    }
 }

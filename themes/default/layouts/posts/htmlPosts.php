@@ -162,16 +162,32 @@ if($postsFromData){
         $postStyle = 'nonePoint';
     }
     /*Comment*/
-   $getUserComments = $iN->iN_GetPostComments($userPostID, 0);
+   // OPTIMIZATION: Use total_comments from main query if available, avoid extra DB query
+   $totalCommentsCount = isset($postFromData['total_comments'])
+       ? (int)$postFromData['total_comments']
+       : null;
+
    $c = 1;
    $TotallyPostComment = '';
+   $getUserComments = []; // Initialize to avoid undefined variable warnings
+
    if ($c) {
-      if ($getUserComments > 0) {
-         $CountTheUniqComment = count($getUserComments);
+      // If we don't have the count from the query, fetch comments to get it
+      if ($totalCommentsCount === null) {
+         $getUserComments = $iN->iN_GetPostComments($userPostID, 0);
+         $totalCommentsCount = is_array($getUserComments) ? count($getUserComments) : 0;
+      }
+
+      if ($totalCommentsCount > 0) {
+         $CountTheUniqComment = $totalCommentsCount;
          $SecondUniqComment = $CountTheUniqComment - 2;
          if ($CountTheUniqComment > 2) {
+            // Only fetch actual comments when we need to display them
             $getUserComments = $iN->iN_GetPostComments($userPostID, 2);
             $TotallyPostComment = '<div class="lc_sum_container lc_sum_container_'.$userPostID.'"><div class="comnts transition more_comment" id="od_com_'.$userPostID.'" data-id="'.$userPostID.'">'.preg_replace( '/{.*?}/', $SecondUniqComment, $LANG['t_comments']).'</div></div>';
+         } else if ($totalCommentsCount > 0) {
+            // If we have 1-2 comments, fetch them
+            $getUserComments = $iN->iN_GetPostComments($userPostID, $totalCommentsCount);
          }
       }
    }
@@ -183,7 +199,10 @@ if($postsFromData){
       $checkUserPurchasedThisPost = '0';
    }else{
       $getFriendStatusBetweenTwoUser = $iN->iN_GetRelationsipBetweenTwoUsers($userID, $userPostOwnerID);
-      $checkPostLikedBefore = $iN->iN_CheckPostLikedBefore($userID, $userPostID);
+      // OPTIMIZATION: Use liked_by_user from main query if available, avoid extra DB query
+      $checkPostLikedBefore = isset($postFromData['liked_by_user'])
+          ? $postFromData['liked_by_user']
+          : $iN->iN_CheckPostLikedBefore($userID, $userPostID);
       $checkPostReportedBefore = $iN->iN_CheckPostReportedBefore($userID, $userPostID);
       if($iN->iN_CheckPostSavedBefore($userID, $userPostID) == '1'){
          $pSaveStatusBtn = $iN->iN_SelectedMenuIcon('63');
@@ -240,7 +259,10 @@ if($postsFromData){
      $pPinStatusBtn = $iN->iN_SelectedMenuIcon('29').$LANG['post_pined_on_your_profile'];
    }
    $waitingApprove = '';
-   $likeSum = $iN->iN_TotalPostLiked($userPostID);
+   // OPTIMIZATION: Use total_likes from main query if available, avoid extra DB query
+   $likeSum = isset($postFromData['total_likes'])
+       ? $postFromData['total_likes']
+       : $iN->iN_TotalPostLiked($userPostID);
    if($likeSum > '0'){
       $likeSum = $likeSum;
    }else{
