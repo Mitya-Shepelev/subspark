@@ -3016,8 +3016,18 @@ public function iN_SavedPosts($userID, $lastPostID, $showingPost) {
 	/*Update User Language*/
 	public function iN_UpdateLanguage($userID, $langID) {
 		if ($this->iN_CheckUserExist($userID) == 1 && $this->iN_CheckLangIDExist($langID)) {
+			// Get user data before update to invalidate cache by username
+			$userData = $this->iN_GetUserDetails($userID);
+
 			$langKey = $this->iN_CheckLangIDExist($langID);
 			DB::exec("UPDATE i_users SET lang = ? WHERE iuid = ?", [(string)$langKey, (int)$userID]);
+
+			// CACHE INVALIDATION: Clear user cache after language update
+			Cache::delete('user:id:' . (int)$userID);
+			if ($userData && isset($userData['i_username'])) {
+				Cache::delete('user:username:' . $userData['i_username']);
+			}
+
 			return true;
 		} else { return false; }
 	}
