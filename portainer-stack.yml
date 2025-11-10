@@ -20,6 +20,12 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_DATABASE=${DB_DATABASE:-subspark}
 
+      # Redis configuration (external Redis)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+
       # Selectel S3 Storage (optional)
       - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
       - SELECTEL_BUCKET=${SELECTEL_BUCKET:-}
@@ -70,4 +76,6 @@ networks:
   nginx-proxy-manager_default:
     external: true
   mysql-8_default:
+    external: true
+  redis_default:
     external: true
