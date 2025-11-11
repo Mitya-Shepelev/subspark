@@ -1,6 +1,9 @@
 # Claude Code documentation (local only)
 /CLAUDE.md
 
+# Documentation (local only)
+/docs/
+
 # User uploads (should not be in repository)
 uploads/*
 !uploads/.htaccess
