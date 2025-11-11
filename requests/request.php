@@ -1423,9 +1423,16 @@ if ($type == 'upload') {
               if($uploadedStoryType != 'textStory'){
                 if ($uploadedFileID) {
                     if (storage_is_remote()) {
-                        @storage_delete($uploadedFilePath);
-                        @storage_delete($uploadedFilePathX);
-                        @storage_delete($uploadedTumbnailFilePath);
+                        // Delete from cloud storage - check for null/empty before calling
+                        if (!empty($uploadedFilePath)) {
+                            @storage_delete($uploadedFilePath);
+                        }
+                        if (!empty($uploadedFilePathX) && $uploadedFilePathX !== $uploadedFilePath) {
+                            @storage_delete($uploadedFilePathX);
+                        }
+                        if (!empty($uploadedTumbnailFilePath) && $uploadedTumbnailFilePath !== $uploadedFilePath) {
+                            @storage_delete($uploadedTumbnailFilePath);
+                        }
                     } else {
                         @unlink('../' . $uploadedFilePath);
                         @unlink('../' . $uploadedFilePathX);
@@ -1463,10 +1470,18 @@ if ($type == 'upload') {
                         $uploadedTumbnailFilePath = $theFileID['upload_tumbnail_file_path'];
                         $uploadedFilePathX = $theFileID['uploaded_x_file_path'];
                         if (storage_is_remote()) {
-                            @storage_delete($uploadedFilePath);
-                            @storage_delete($uploadedFilePathX);
-                            @storage_delete($uploadedTumbnailFilePath);
+                            // Delete from cloud storage - check for null/empty before calling
+                            if (!empty($uploadedFilePath)) {
+                                @storage_delete($uploadedFilePath);
+                            }
+                            if (!empty($uploadedFilePathX) && $uploadedFilePathX !== $uploadedFilePath) {
+                                @storage_delete($uploadedFilePathX);
+                            }
+                            if (!empty($uploadedTumbnailFilePath) && $uploadedTumbnailFilePath !== $uploadedFilePath) {
+                                @storage_delete($uploadedTumbnailFilePath);
+                            }
                         } else {
+                            // Delete from local storage
                             @unlink('../' . $uploadedFilePath);
                             @unlink('../' . $uploadedFilePathX);
                             @unlink('../' . $uploadedTumbnailFilePath);

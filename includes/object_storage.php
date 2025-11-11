@@ -342,22 +342,57 @@ function storage_upload(string $localPath, string $remoteKey, bool $public = tru
 }
 
 /** Delete a remote object by key */
-function storage_delete(string $remoteKey): bool {
+function storage_delete(?string $remoteKey): bool {
+    // Handle empty/null keys gracefully
+    if (empty($remoteKey)) {
+        error_log("[storage_delete] ERROR: Empty or null key provided, skipping");
+        return false;
+    }
+
     $provider = storage_active_provider();
-    if ($provider === 'local') { return true; }
+    error_log("[storage_delete] Provider: $provider, Key: $remoteKey");
+
+    if ($provider === 'local') {
+        error_log("[storage_delete] Local storage, skipping remote delete");
+        return true;
+    }
+
     $cfg = storage_provider_config();
     $client = storage_client();
-    if (!$client) { return false; }
+    if (!$client) {
+        error_log("[storage_delete] ERROR: S3 client is null");
+        return false;
+    }
+
     $bucket = $cfg['bucket'] ?? null;
-    if (!$bucket) { return false; }
+    if (!$bucket) {
+        error_log("[storage_delete] ERROR: Bucket name is empty");
+        return false;
+    }
+
+    // Clean the key: remove leading slashes and '../' prefixes
+    $cleanKey = ltrim($remoteKey, './');
+    $cleanKey = ltrim($cleanKey, '/');
+
+    error_log("[storage_delete] Attempting to delete from bucket '$bucket', key: '$cleanKey'");
+
     try {
-        $client->deleteObject([
+        $result = $client->deleteObject([
             'Bucket' => $bucket,
-            'Key'    => ltrim($remoteKey, '/'),
+            'Key'    => $cleanKey,
         ]);
+        error_log("[storage_delete] SUCCESS: Deleted '$cleanKey' from bucket '$bucket'");
         return true;
+    } catch (Aws\S3\Exception\S3Exception $e) {
+        error_log("[storage_delete] S3Exception: " . $e->getMessage());
+        error_log("[storage_delete] AWS Error Code: " . $e->getAwsErrorCode());
+        error_log("[storage_delete] Status Code: " . $e->getStatusCode());
+        return false;
     } catch (AwsException $e) {
-        error_log('Storage delete failed: ' . $e->getMessage());
+        error_log("[storage_delete] AwsException: " . $e->getMessage());
+        return false;
+    } catch (Exception $e) {
+        error_log("[storage_delete] General Exception: " . $e->getMessage());
         return false;
     }
 }

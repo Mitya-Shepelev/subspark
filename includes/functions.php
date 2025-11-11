@@ -623,6 +623,36 @@ public function iN_GetUploadedFilesIDs($uid, $imageName) {
 	/*Delete File Before Publish Post*/
 	public function iN_DeleteFile($userID, $fileID) {
 		if ($this->iN_CheckUserExist($userID) == '1' && $this->iN_CheckFileIDExist($fileID) == '1') {
+			// Get file details before deleting from DB
+			$theFileID = $this->iN_GetUploadedFileDetails($fileID);
+			if ($theFileID) {
+				$uploadedFilePath = $theFileID['uploaded_file_path'];
+				$uploadedTumbnailFilePath = $theFileID['upload_tumbnail_file_path'];
+				$uploadedFilePathX = $theFileID['uploaded_x_file_path'];
+
+				// Check if cloud storage is enabled using storage_active_provider()
+				$activeProvider = storage_active_provider();
+				$cloudStorageEnabled = ($activeProvider !== 'local');
+
+				if ($cloudStorageEnabled) {
+					// Delete from cloud storage
+					if ($uploadedFilePath) {
+						storage_delete($uploadedFilePath);
+					}
+					if ($uploadedTumbnailFilePath && $uploadedTumbnailFilePath !== $uploadedFilePath) {
+						storage_delete($uploadedTumbnailFilePath);
+					}
+					if ($uploadedFilePathX && $uploadedFilePathX !== $uploadedFilePath) {
+						storage_delete($uploadedFilePathX);
+					}
+				} else {
+					// Delete from local storage
+					@unlink('../' . $uploadedFilePath);
+					@unlink('../' . $uploadedTumbnailFilePath);
+					@unlink('../' . $uploadedFilePathX);
+				}
+			}
+
 			DB::exec("DELETE FROM i_user_uploads WHERE upload_id = ? AND iuid_fk = ?", [(int)$fileID, (int)$userID]);
 			return true;
 		}
@@ -1530,23 +1560,55 @@ public function iN_GetUploadedFilesIDs($uid, $imageName) {
         if ($this->iN_CheckUserExist($userID) == 1 && $this->iN_CheckPostIDExist($postID) == 1) {
             $getPostFileIDs = $this->iN_GetAllPostDetails($postID);
             $postFileIDs = isset($getPostFileIDs['post_file']) ? $getPostFileIDs['post_file'] : null;
-            $s3 = DB::one("SELECT s3_status, was_status, ocean_status FROM i_configurations WHERE configuration_id = 1");
-            $s3Status = $s3['s3_status'] ?? '0';
-            $WasStatus = $s3['was_status'] ?? '0';
-            $oceanStatus = $s3['ocean_status'] ?? '0';
-            if ($postFileIDs && $s3Status != '1' && $oceanStatus != '1' && $WasStatus != '1') {
+
+            // Check if cloud storage is enabled using storage_active_provider()
+            $activeProvider = storage_active_provider();
+            $cloudStorageEnabled = ($activeProvider !== 'local');
+            error_log("[iN_DeletePost] Post ID: $postID, Provider: $activeProvider, Cloud storage enabled: " . ($cloudStorageEnabled ? 'YES' : 'NO'));
+
+            if ($postFileIDs) {
                 $trimValue = rtrim($postFileIDs, ',');
                 $explodeFiles = array_unique(explode(',', $trimValue));
+                error_log("[iN_DeletePost] Found " . count($explodeFiles) . " files to delete");
+
                 foreach ($explodeFiles as $explodeFile) {
                     $theFileID = $this->iN_GetUploadedFileDetails($explodeFile);
-                    if (!$theFileID) { continue; }
+                    if (!$theFileID) {
+                        error_log("[iN_DeletePost] File ID $explodeFile not found in database");
+                        continue;
+                    }
                     $uploadedFileID = $theFileID['upload_id'];
                     $uploadedFilePath = $theFileID['uploaded_file_path'];
                     $uploadedTumbnailFilePath = $theFileID['upload_tumbnail_file_path'];
                     $uploadedFilePathX = $theFileID['uploaded_x_file_path'];
-                    @unlink('../' . $uploadedFilePath);
-                    @unlink('../' . $uploadedFilePathX);
-                    @unlink('../' . $uploadedTumbnailFilePath);
+
+                    error_log("[iN_DeletePost] Processing file ID $uploadedFileID:");
+                    error_log("  - Main: $uploadedFilePath");
+                    error_log("  - Thumb: $uploadedTumbnailFilePath");
+                    error_log("  - X: $uploadedFilePathX");
+
+                    if ($cloudStorageEnabled) {
+                        // Delete from cloud storage (S3, Wasabi, DigitalOcean, Selectel)
+                        error_log("[iN_DeletePost] Deleting from cloud storage");
+                        if ($uploadedFilePath) {
+                            $result = storage_delete($uploadedFilePath);
+                            error_log("[iN_DeletePost] Delete main file result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                        if ($uploadedTumbnailFilePath && $uploadedTumbnailFilePath !== $uploadedFilePath) {
+                            $result = storage_delete($uploadedTumbnailFilePath);
+                            error_log("[iN_DeletePost] Delete thumbnail result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                        if ($uploadedFilePathX && $uploadedFilePathX !== $uploadedFilePath) {
+                            $result = storage_delete($uploadedFilePathX);
+                            error_log("[iN_DeletePost] Delete X file result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                    } else {
+                        // Delete from local storage
+                        @unlink('../' . $uploadedFilePath);
+                        @unlink('../' . $uploadedFilePathX);
+                        @unlink('../' . $uploadedTumbnailFilePath);
+                    }
+
                     DB::exec("DELETE FROM i_user_uploads WHERE upload_id = ? AND iuid_fk = ?", [(int)$uploadedFileID, (int)$userID]);
                 }
             }
@@ -1564,23 +1626,55 @@ public function iN_GetUploadedFilesIDs($uid, $imageName) {
         if ($this->iN_CheckIsAdmin($userID) == 1 && $this->iN_CheckPostIDExist($postID) == 1) {
             $getPostFileIDs = $this->iN_GetAllPostDetails($postID);
             $postFileIDs = isset($getPostFileIDs['post_file']) ? $getPostFileIDs['post_file'] : null;
-            $s3 = DB::one("SELECT s3_status, was_status, ocean_status FROM i_configurations WHERE configuration_id = 1");
-            $s3Status = $s3['s3_status'] ?? '0';
-            $WasStatus = $s3['was_status'] ?? '0';
-            $oceanStatus = $s3['ocean_status'] ?? '0';
-            if ($postFileIDs && $s3Status != '1' && $oceanStatus != '1' && $WasStatus != '1') {
+
+            // Check if cloud storage is enabled using storage_active_provider()
+            $activeProvider = storage_active_provider();
+            $cloudStorageEnabled = ($activeProvider !== 'local');
+            error_log("[iN_DeletePost] Post ID: $postID, Provider: $activeProvider, Cloud storage enabled: " . ($cloudStorageEnabled ? 'YES' : 'NO'));
+
+            if ($postFileIDs) {
                 $trimValue = rtrim($postFileIDs, ',');
                 $explodeFiles = array_unique(explode(',', $trimValue));
+                error_log("[iN_DeletePost] Found " . count($explodeFiles) . " files to delete");
+
                 foreach ($explodeFiles as $explodeFile) {
                     $theFileID = $this->iN_GetUploadedFileDetails($explodeFile);
-                    if (!$theFileID) { continue; }
+                    if (!$theFileID) {
+                        error_log("[iN_DeletePost] File ID $explodeFile not found in database");
+                        continue;
+                    }
                     $uploadedFileID = $theFileID['upload_id'];
                     $uploadedFilePath = $theFileID['uploaded_file_path'];
                     $uploadedTumbnailFilePath = $theFileID['upload_tumbnail_file_path'];
                     $uploadedFilePathX = $theFileID['uploaded_x_file_path'];
-                    @unlink('../' . $uploadedFilePath);
-                    @unlink('../' . $uploadedFilePathX);
-                    @unlink('../' . $uploadedTumbnailFilePath);
+
+                    error_log("[iN_DeletePost] Processing file ID $uploadedFileID:");
+                    error_log("  - Main: $uploadedFilePath");
+                    error_log("  - Thumb: $uploadedTumbnailFilePath");
+                    error_log("  - X: $uploadedFilePathX");
+
+                    if ($cloudStorageEnabled) {
+                        // Delete from cloud storage (S3, Wasabi, DigitalOcean, Selectel)
+                        error_log("[iN_DeletePost] Deleting from cloud storage");
+                        if ($uploadedFilePath) {
+                            $result = storage_delete($uploadedFilePath);
+                            error_log("[iN_DeletePost] Delete main file result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                        if ($uploadedTumbnailFilePath && $uploadedTumbnailFilePath !== $uploadedFilePath) {
+                            $result = storage_delete($uploadedTumbnailFilePath);
+                            error_log("[iN_DeletePost] Delete thumbnail result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                        if ($uploadedFilePathX && $uploadedFilePathX !== $uploadedFilePath) {
+                            $result = storage_delete($uploadedFilePathX);
+                            error_log("[iN_DeletePost] Delete X file result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                        }
+                    } else {
+                        // Delete from local storage
+                        @unlink('../' . $uploadedFilePath);
+                        @unlink('../' . $uploadedFilePathX);
+                        @unlink('../' . $uploadedTumbnailFilePath);
+                    }
+
                     DB::exec("DELETE FROM i_user_uploads WHERE upload_id = ?", [(int)$uploadedFileID]);
                 }
             }
@@ -3855,6 +3949,18 @@ public function iN_UpdateUserProfile($userID, $updatedUser, $updateVerification,
 public function iN_DeleteUser($userID, $deleteUserID) {
         if ($this->iN_CheckIsAdmin($userID) == 1 && $this->iN_CheckUserExist($deleteUserID) == 1) {
             $uid = (int)$deleteUserID;
+
+            // Check if cloud storage is enabled using storage_active_provider()
+            $activeProvider = storage_active_provider();
+            $cloudStorageEnabled = ($activeProvider !== 'local');
+
+            // Get all user's uploaded files BEFORE deleting from database
+            $userFiles = DB::all("SELECT upload_id, uploaded_file_path, upload_tumbnail_file_path, uploaded_x_file_path FROM i_user_uploads WHERE iuid_fk = ?", [$uid]);
+
+            // Get user's avatar and cover
+            $userAvatar = DB::one("SELECT avatar_path FROM i_user_avatars WHERE iuid_fk = ?", [$uid]);
+            $userCover = DB::one("SELECT cover_path FROM i_user_covers WHERE iuid_fk = ?", [$uid]);
+
             try {
                 DB::begin();
                 DB::exec("DELETE FROM i_chat_conversations WHERE user_one = ? OR user_two = ?", [$uid,$uid]);
@@ -3879,6 +3985,47 @@ public function iN_DeleteUser($userID, $deleteUserID) {
                 DB::exec("DELETE FROM i_verification_requests WHERE iuid_fk = ?", [$uid]);
                 DB::exec("DELETE FROM i_users WHERE iuid = ?", [$uid]);
                 DB::commit();
+
+                // After successful DB deletion, delete files from storage
+                if ($cloudStorageEnabled) {
+                    // Delete all uploaded files from cloud storage
+                    if ($userFiles) {
+                        foreach ($userFiles as $file) {
+                            if (!empty($file['uploaded_file_path'])) {
+                                storage_delete($file['uploaded_file_path']);
+                            }
+                            if (!empty($file['upload_tumbnail_file_path']) && $file['upload_tumbnail_file_path'] !== $file['uploaded_file_path']) {
+                                storage_delete($file['upload_tumbnail_file_path']);
+                            }
+                            if (!empty($file['uploaded_x_file_path']) && $file['uploaded_x_file_path'] !== $file['uploaded_file_path']) {
+                                storage_delete($file['uploaded_x_file_path']);
+                            }
+                        }
+                    }
+                    // Delete avatar and cover
+                    if ($userAvatar && !empty($userAvatar['avatar_path'])) {
+                        storage_delete($userAvatar['avatar_path']);
+                    }
+                    if ($userCover && !empty($userCover['cover_path'])) {
+                        storage_delete($userCover['cover_path']);
+                    }
+                } else {
+                    // Delete from local storage
+                    if ($userFiles) {
+                        foreach ($userFiles as $file) {
+                            @unlink('../' . $file['uploaded_file_path']);
+                            @unlink('../' . $file['upload_tumbnail_file_path']);
+                            @unlink('../' . $file['uploaded_x_file_path']);
+                        }
+                    }
+                    if ($userAvatar && !empty($userAvatar['avatar_path'])) {
+                        @unlink('../' . $userAvatar['avatar_path']);
+                    }
+                    if ($userCover && !empty($userCover['cover_path'])) {
+                        @unlink('../' . $userCover['cover_path']);
+                    }
+                }
+
                 return true;
             } catch (Throwable $e) {
                 DB::rollBack();
