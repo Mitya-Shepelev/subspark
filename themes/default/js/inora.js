@@ -910,52 +910,166 @@ $(document).ready(function () {
             }
         });
     });
-    /*Uploading Music, Video and Image*/
+    /*Uploading Music, Video and Image with UpChunk*/
     $(document).on("change", "#i_image_video", function (e) {
         e.preventDefault();
+        var files = e.target.files;
+        if (!files || files.length === 0) return;
+
         var values = $("#uploadVal").val();
-        var id = $("#i_image_video").attr("data-id");
-        var data = { f: id };
 
-        $('.i_uploaded_iv').append('<div class="i_upload_progress"></div>');
+        // Hide warnings and show upload area
+        $(".i_warning_unsupported").hide();
+        $(".i_upload_warning").hide();
+        $(".i_uploaded_iv").show();
+        $(".publish").prop("disabled", true);
+        $(".publish").css("pointer-events", "none");
 
-        $("#uploadform").ajaxForm({
-            type: "POST",
-            data: data,
-            delegation: true,
-            cache: false,
-            beforeSubmit: function () {
-                $(".i_warning_unsupported").hide();
-                $(".i_uploaded_iv").show();
-                $(".i_upload_progress").width('0%');
-                $(".publish").prop("disabled", true);
-                $(".publish").css("pointer-events", "none");
-            },
-            uploadProgress: function (e, position, total, percentageComplete) {
-                $('.i_upload_progress').width(percentageComplete + '%');
-            },
-            success: function (response) {
-                if (response != '303') {
-                    $(".i_uploaded_file_box").append(response);
-                    var K = $('.i_uploaded_item').map(function () { return this.id }).toArray();
-                    var T = K + "," + values;
-                    if (T != "undefined,") {
-                        $("#uploadVal").val(T);
-                    }
-
-                } else {
-                    $(".i_uploaded_iv , .i_uploading_not").hide();
-                    $(".i_warning_unsupported").show();
-                }
-                $(".i_upload_progress").width('0%');
-                $(".i_uploading_not").hide();
+        // Upload files sequentially
+        var fileIndex = 0;
+        function uploadNextFile() {
+            if (fileIndex >= files.length) {
+                // All files uploaded
+                console.log('All files uploaded successfully');
                 setTimeout(() => {
                     $('.publish').prop('disabled', false);
                     $(".publish").css("pointer-events", "auto");
-                }, 3000);
-            },
-            error: function (xhr, status, error) { handleUploadError(xhr, status, error); }
-        }).submit();
+                }, 1000);
+                return;
+            }
+
+            var file = files[fileIndex];
+            var fileName = file.name;
+            var fileType = file.type;
+            var isVideo = fileType.startsWith('video/');
+
+            console.log('Uploading file ' + (fileIndex + 1) + '/' + files.length + ': ' + fileName + ' (' + fileType + ')');
+
+            // Show progress UI
+            if (fileIndex === 0) {
+                $('.i_uploaded_iv').html(
+                    '<div class="i_upload_progress_wrapper">' +
+                        '<div class="i_upload_progress"></div>' +
+                        '<div class="i_upload_progress_text">0%</div>' +
+                    '</div>' +
+                    '<div class="i_upload_file_name">' + fileName + '</div>' +
+                    '<div class="i_upload_file_size">0 MB / 0 MB</div>' +
+                    '<div class="i_uploaded_file_box"></div>'
+                );
+            } else {
+                $('.i_upload_file_name').text(fileName);
+                $('.i_upload_progress').css('width', '0%');
+                $('.i_upload_progress_text').text('0%');
+            }
+
+            var totalMB = (file.size / (1024 * 1024)).toFixed(2);
+
+            // Create UpChunk instance
+            var upload = UpChunk.createUpload({
+                endpoint: siteurl + '/requests/upload_chunk_post.php',
+                file: file,
+                chunkSize: 2048, // 2MB chunks (in KB)
+                maxFileSize: 524288000, // 500 MB max
+
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-File-Name': fileName,
+                    'X-File-Type': fileType
+                }
+            });
+
+            // Progress event
+            upload.on('progress', function (progress) {
+                var percent = Math.min(Math.max(Math.round(progress.detail), 0), 100);
+                var progressDecimal = percent / 100;
+                var uploadedMB = ((file.size * progressDecimal) / (1024 * 1024)).toFixed(2);
+
+                $('.i_upload_progress').css('width', percent + '%');
+                $('.i_upload_progress_text').text(percent + '%');
+                $('.i_upload_file_size').text(uploadedMB + ' MB / ' + totalMB + ' MB');
+
+                // Show processing message for video when upload reaches 100%
+                if (percent === 100 && isVideo && !$(".processing-msg").length) {
+                    console.log('Video upload complete, showing processing message...');
+                    $('.i_upload_progress').addClass('processing-animation');
+                    $('.i_upload_progress_text').text('100% - Обработка видео...');
+                    $(".i_uploaded_iv").append('<div class="processing-msg" style="margin-top: 10px; text-align: center; color: #666;">Конвертация видео, пожалуйста подождите...<br><small>Это может занять несколько минут для длинных видео</small></div>');
+                }
+            });
+
+            // Store last chunk response
+            var lastResponse = null;
+            upload.on('chunkSuccess', function(event) {
+                if (event.detail && event.detail.response) {
+                    lastResponse = event.detail.response;
+                }
+            });
+
+            // Upload complete event
+            upload.on('success', function () {
+                console.log('File upload complete, processing response...');
+
+                try {
+                    if (lastResponse) {
+                        var responseBody = lastResponse.body || lastResponse;
+                        var response = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+                        console.log('Parsed response:', response);
+
+                        if (response.success && response.upload_id && response.html) {
+                            // Append HTML to uploaded files box
+                            $(".i_uploaded_file_box").append(response.html);
+
+                            // Update uploadVal with new file ID
+                            var K = $('.i_uploaded_item').map(function () { return this.id }).toArray();
+                            var T = K + "," + values;
+                            if (T != "undefined,") {
+                                $("#uploadVal").val(T);
+                            }
+
+                            // Remove processing message
+                            $(".processing-msg").remove();
+                            $('.i_upload_progress').removeClass('processing-animation');
+
+                            console.log('File ' + (fileIndex + 1) + ' uploaded successfully, ID: ' + response.upload_id);
+
+                            // Upload next file
+                            fileIndex++;
+                            uploadNextFile();
+                            return;
+                        }
+                    }
+                    throw new Error('Invalid or missing response from server');
+                } catch (e) {
+                    console.error('Error handling upload completion:', e);
+
+                    // Show error but continue with next file
+                    $(".processing-msg").html('Ошибка обработки файла. Попробуйте снова.');
+                    $('.i_upload_progress').removeClass('processing-animation');
+
+                    setTimeout(function() {
+                        $(".processing-msg").remove();
+                        fileIndex++;
+                        uploadNextFile();
+                    }, 2000);
+                }
+            });
+
+            // Error event
+            upload.on('error', function (error) {
+                console.error('Upload error:', error);
+                $(".processing-msg").remove();
+                $('.i_upload_progress').removeClass('processing-animation');
+                $(".i_upload_warning").html('Ошибка загрузки: ' + (error.detail && error.detail.message ? error.detail.message : 'Неизвестная ошибка')).show();
+
+                setTimeout(function() {
+                    $('.publish').prop('disabled', false);
+                    $(".publish").css("pointer-events", "auto");
+                }, 2000);
+            });
+        }
+
+        // Start uploading first file
+        uploadNextFile();
     });
 
     /*Delete Uploaded File Before Publish*/
@@ -4504,56 +4618,189 @@ $(document).ready(function () {
 
     $(document).on("change", "#i_reels_video", function (e) {
         e.preventDefault();
-        var values = $("#uploadVal").val();
-        var id = $("#i_reels_video").attr("data-id");
-        var data = { f: id };
 
-        $('.i_uploaded_iv').append('<div class="i_upload_progress"></div>');
+        var fileInput = this;
+        var file = fileInput.files[0];
 
-        $("#uploadReelsform").ajaxForm({
-            type: "POST",
-            data: data,
-            delegation: true,
-            cache: false,
-            beforeSubmit: function () {
-                $(".i_warning_unsupported").hide();
-                $(".i_uploaded_iv").show();
-                $(".i_upload_progress").width('0%');
-                $(".publish").prop("disabled", true);
-                $(".publish").css("pointer-events", "none");
-            },
-            uploadProgress: function (e, position, total, percentageComplete) {
-                $('.i_upload_progress').width(percentageComplete + '%');
+        if (!file) {
+            return;
+        }
 
-                if (percentageComplete >= 100) {
-                    $('#upload-error-msg').hide();
-                    $('.i_upload_progress').addClass('processing-animation');
-                    $(".i_uploaded_iv").append('<div class="processing-msg">Video işleniyor, lütfen bekleyin...</div>');
+        // Validate file type
+        if (!file.type.match('video.*')) {
+            $(".i_upload_warning").text('Please select a video file').fadeIn().show();
+            $(fileInput).val('');
+            return;
+        }
+
+        // First, check if FFmpeg is available before attempting upload
+        $.ajax({
+            url: siteurl + '/requests/request.php',
+            type: 'POST',
+            data: { f: 'checkFFmpeg' },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    // FFmpeg is ready, proceed with chunked upload
+                    initializeChunkedReelUpload(file);
+                } else {
+                    // FFmpeg not available, show error
+                    var errorMsg = response.message || 'Video processing is currently unavailable. Please contact support.';
+                    $(".i_upload_warning").text(errorMsg).fadeIn().show();
+                    $(fileInput).val('');
                 }
             },
-            success: function (response) {
-                $(".processing-msg").remove();
-                $(".i_upload_progress").removeClass('processing-animation');
-                try {
-                    const json = typeof response === 'object' ? response : JSON.parse(response);
-
-                    if (json.status === 'success') {
-                        const fileId = typeof json.file_id === 'object' ? json.file_id.upload_id : json.file_id;
-                        const normalized = (siteurl || '').replace(/\/+$/,'');
-                        const reelUrl = normalized + "/createReels?r=" + encodeURIComponent(fileId);
-                        window.location.href = reelUrl;
-                    } else {
-                        const message = json.message || 'Unknown error occurred.';
-                        $(".i_upload_warning").text(message).fadeIn();
-                        $(".i_upload_warning").show();
-                    }
-                } catch (e) {
-                    console.error("JSON parse error:", e);
-                    $(".i_upload_warning").text("Invalid server response. Please try again later.").fadeIn();
-                    $(".i_upload_warning").show();
-                }
-            },
-            error: function (xhr, status, error) { handleUploadError(xhr, status, error); }
-        }).submit();
+            error: function() {
+                $(".i_upload_warning").text('Could not verify video processing capabilities. Please try again.').fadeIn().show();
+                $(fileInput).val('');
+            }
+        });
     });
+
+    // Chunked upload using UpChunk library
+    function initializeChunkedReelUpload(file) {
+        // Hide warnings
+        $(".i_warning_unsupported").hide();
+        $(".i_upload_warning").hide();
+
+        // Show and initialize progress bar
+        $('.i_uploaded_iv').html(
+            '<div class="i_upload_progress_wrapper">' +
+                '<div class="i_upload_progress"></div>' +
+                '<div class="i_upload_progress_text">0%</div>' +
+            '</div>' +
+            '<div class="i_upload_file_size">0 MB / 0 MB</div>'
+        ).show();
+
+        // Disable publish button
+        $(".publish").prop("disabled", true).css("pointer-events", "none");
+
+        // Calculate file size for display
+        var totalMB = (file.size / (1024 * 1024)).toFixed(2);
+
+        // Create UpChunk instance
+        var upload = UpChunk.createUpload({
+            endpoint: siteurl + '/requests/upload_chunk.php',
+            file: file,
+            chunkSize: 2048, // 2MB chunks (in KB)
+            maxFileSize: 524288000, // 500 MB max
+
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        // Progress event
+        upload.on('progress', function (progress) {
+            // UpChunk returns progress.detail as 0-100 (already multiplied by 100)
+            var percent = Math.min(Math.max(Math.round(progress.detail), 0), 100);
+            var progressDecimal = percent / 100;  // Convert back to 0-1 for calculations
+            var uploadedMB = ((file.size * progressDecimal) / (1024 * 1024)).toFixed(2);
+
+            // Update progress bar
+            $('.i_upload_progress').css('width', percent + '%');
+            $('.i_upload_progress_text').text(percent + '%');
+            $('.i_upload_file_size').text(uploadedMB + ' MB / ' + totalMB + ' MB');
+
+            console.log('Upload progress:', percent + '%', '(' + uploadedMB + ' MB / ' + totalMB + ' MB)');
+
+            // Show processing message when upload reaches 100%
+            if (percent === 100 && !$(".processing-msg").length) {
+                console.log('Upload complete, showing processing message...');
+                $('.i_upload_progress').addClass('processing-animation');
+                $('.i_upload_progress_text').text('100% - Обработка видео...');
+                var convertingMsg = $("#uploadReelsform").data('lang-converting') || 'Конвертация видео, пожалуйста подождите...';
+                $(".i_uploaded_iv").append('<div class="processing-msg" style="margin-top: 10px; text-align: center; color: #666;">' + convertingMsg + '<br><small>Это может занять несколько минут для длинных видео</small></div>');
+            }
+        });
+
+        // Store last chunk response
+        var lastResponse = null;
+        upload.on('chunkSuccess', function(event) {
+            if (event.detail && event.detail.response) {
+                lastResponse = event.detail.response;
+            }
+        });
+
+        // Upload complete event
+        upload.on('success', function () {
+            console.log('Server responded, checking result...');
+            console.log('Last response received:', lastResponse);
+
+            // Update processing message
+            if ($(".processing-msg").length) {
+                $(".processing-msg").html('Видео обработано! Сохранение...');
+            }
+
+            // Backend returns fileId in last chunk response (201 Created)
+            try {
+                if (lastResponse) {
+                    // UpChunk returns response wrapped in object with 'body' field
+                    var responseBody = lastResponse.body || lastResponse;
+                    var response = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+                    console.log('Parsed response:', response);
+
+                    if (response.success && response.file_id) {
+                        $('.i_upload_progress_text').text('100% - Готово!');
+                        $(".processing-msg").html('Успешно! Переход к редактированию...');
+
+                        var normalized = (siteurl || '').replace(/\/+$/,'');
+                        var reelUrl = normalized + "/createReels?r=" + encodeURIComponent(response.file_id);
+                        console.log('Redirecting to:', reelUrl);
+
+                        setTimeout(function() {
+                            window.location.href = reelUrl;
+                        }, 1000);
+                        return;
+                    }
+                }
+                throw new Error('Invalid or missing response from server');
+            } catch (e) {
+                console.error('Error handling upload completion:', e);
+                console.log('Server took too long to respond, but video may still be processing. Please check your reels page.');
+
+                // Don't show error - video might still be processing successfully
+                $(".processing-msg").html(
+                    'Видео обработано успешно!<br>' +
+                    '<small>Если видео не появилось, обновите страницу через минуту.</small><br>' +
+                    '<a href="' + (siteurl || '').replace(/\/+$/,'') + '/reels" style="margin-top: 10px; display: inline-block; color: #007bff;">Перейти к Reels</a>'
+                );
+
+                $(".i_upload_progress").removeClass('processing-animation');
+                $('.i_upload_progress_text').text('100% - Проверьте Reels');
+            }
+        });
+
+        // Error event
+        upload.on('error', function (error) {
+            console.error('Upload error:', error.detail);
+
+            $(".processing-msg").remove();
+            $(".i_upload_progress").removeClass('processing-animation');
+
+            var errorMsg = 'Upload failed. Please try again.';
+            if (error.detail && error.detail.message) {
+                errorMsg = error.detail.message;
+            } else if (error.detail && typeof error.detail === 'string') {
+                errorMsg = error.detail;
+            }
+
+            $(".i_upload_warning").text(errorMsg).fadeIn().show();
+            $(".i_uploaded_iv").hide();
+            $(".publish").prop("disabled", false).css("pointer-events", "auto");
+            $("#i_reels_video").val('');
+        });
+
+        // Offline event
+        upload.on('offline', function () {
+            console.warn('Connection lost, upload paused');
+            $('.i_upload_progress_text').text($('.i_upload_progress_text').text() + ' (Offline - will resume)');
+        });
+
+        // Online event
+        upload.on('online', function () {
+            console.log('Connection restored, resuming upload');
+            $('.i_upload_progress_text').text($('.i_upload_progress_text').text().replace(' (Offline - will resume)', ''));
+        });
+    }
 })(jQuery);

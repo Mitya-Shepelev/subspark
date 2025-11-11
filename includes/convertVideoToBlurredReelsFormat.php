@@ -9,11 +9,15 @@
  */
 function convertVideoToBlurredReelsFormat(string $ffmpeg, string $inputPath, string $outputDir): ?string
 {
+    $logFile = __DIR__ . '/reels_conversion_debug.log';
+
     if (!file_exists($inputPath) || !is_readable($inputPath)) {
+        @file_put_contents($logFile, "[ERROR] Input file not found or not readable: $inputPath\n", FILE_APPEND);
         return null;
     }
 
     if (!file_exists($outputDir) && !mkdir($outputDir, 0755, true)) {
+        @file_put_contents($logFile, "[ERROR] Failed to create output directory: $outputDir\n", FILE_APPEND);
         return null;
     }
 
@@ -32,10 +36,23 @@ function convertVideoToBlurredReelsFormat(string $ffmpeg, string $inputPath, str
          . "-c:a aac -b:a 128k -strict -2 "
          . "{$escapedOutput} -y 2>&1";
 
-    shell_exec($cmd);
+    @file_put_contents($logFile, "[INFO] Running FFmpeg command:\n$cmd\n", FILE_APPEND);
 
-    if (file_exists($outputPath) && filesize($outputPath) > 100000) {
-        return $outputPath;
+    $output = shell_exec($cmd);
+
+    @file_put_contents($logFile, "[INFO] FFmpeg output:\n$output\n", FILE_APPEND);
+
+    if (file_exists($outputPath)) {
+        $fileSize = filesize($outputPath);
+        @file_put_contents($logFile, "[INFO] Output file created: $outputPath (size: $fileSize bytes)\n", FILE_APPEND);
+
+        if ($fileSize > 100000) {
+            return $outputPath;
+        } else {
+            @file_put_contents($logFile, "[ERROR] Output file too small (< 100KB), conversion likely failed\n", FILE_APPEND);
+        }
+    } else {
+        @file_put_contents($logFile, "[ERROR] Output file not created: $outputPath\n", FILE_APPEND);
     }
 
     return null;

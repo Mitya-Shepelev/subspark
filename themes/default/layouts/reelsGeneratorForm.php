@@ -6,7 +6,7 @@
         <?php echo $iN->iN_SelectedMenuIcon('187'); ?>
         <?php echo iN_HelpSecure($LANG['create_reels']); ?>
         <div class="cr_reels ownTooltip" data-label="<?php echo iN_HelpSecure($LANG['create_reels']); ?>">
-            <form id="uploadReelsform" class="options-form" method="post" enctype="multipart/form-data" action="<?php echo iN_HelpSecure($base_url) . 'requests/request.php'; ?>">
+            <form id="uploadReelsform" class="options-form" method="post" enctype="multipart/form-data" action="<?php echo iN_HelpSecure($base_url) . 'requests/request.php'; ?>" data-lang-converting="<?php echo iN_HelpSecure($LANG['converting_video_please_wait']); ?>">
                 <label for="i_reels_video">
                     <div class="i_image_video_btn">
                         <?php echo html_entity_decode($iN->iN_SelectedMenuIcon('39')); ?>
@@ -17,6 +17,10 @@
         </div>
         <div class="i_uploading_not_story flex_ tabing nonePoint">
             <?php echo iN_HelpSecure($LANG['uploading_please_wait']); ?>
+        </div>
+        <!-- Progress bar container -->
+        <div class="i_uploaded_iv" style="position: relative; margin-top: 10px; display: none;">
+            <!-- Progress bar will be inserted here by JavaScript -->
         </div>
       </div>
     </div> 
@@ -33,10 +37,15 @@
                 $reelUploadedFileTumbnail = $reelData['upload_tumbnail_file_path'];
                 $createdTime = $reelData['upload_time'];
                 $crTime = date('Y-m-d H:i:s', $createdTime);
+
+                // Always use video file path for playback, not thumbnail
                 if (function_exists('storage_public_url')) {
-                    $filePathUrl = storage_public_url($reelUploadedFileTumbnail ?: $reelUploadedFilePath);
+                    $filePathUrl = storage_public_url($reelUploadedFilePath);
+                    $thumbnailUrl = storage_public_url($reelUploadedFileTumbnail);
                 } else {
-                    $filePathUrl = $base_url . ($reelUploadedFileTumbnail ?: $reelUploadedFilePath);
+                    // For local storage, use direct path without base_url to avoid /index.php/ prefix
+                    $filePathUrl = '/' . ltrim($reelUploadedFilePath, '/');
+                    $thumbnailUrl = $reelUploadedFileTumbnail ? '/' . ltrim($reelUploadedFileTumbnail, '/') : '';
                 }
         ?>
         <div class="uploaded_storie_container body_<?php echo iN_HelpSecure($videoID); ?>">
@@ -49,7 +58,7 @@
           </div>
         </div>
         <div class="uploaded_storie_image uploaded_storie_before border_one tabing flex_ aft">
-          <video class="lg-video-object" id="v<?php echo iN_HelpSecure($videoID); ?>" controls preload="none" poster="<?php echo $reelUploadedFileTumbnail; ?>">
+          <video class="lg-video-object" id="v<?php echo iN_HelpSecure($videoID); ?>" controls preload="none" poster="<?php echo $thumbnailUrl; ?>">
             <source src="<?php echo $filePathUrl; ?>" preload="metadata" type="video/mp4">
           </video>
         </div>

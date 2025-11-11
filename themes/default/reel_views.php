@@ -80,7 +80,12 @@ $initialReels = $iN->iN_GetInitialReels($reelID, 2, isset($userID)? (int)$userID
     $uploadedFilePath = DB::col("SELECT uploaded_file_path FROM i_user_uploads WHERE upload_id = ? LIMIT 1", [(int)$postFileId]);
     $missingVideo = false;
     if ($uploadedFilePath !== false && $uploadedFilePath !== null) {
-        $videoSrc = htmlspecialchars($uploadedFilePath);
+        // Use storage_public_url() to get correct URL (S3 or local)
+        if (function_exists('storage_public_url')) {
+            $videoSrc = htmlspecialchars(storage_public_url($uploadedFilePath));
+        } else {
+            $videoSrc = htmlspecialchars($uploadedFilePath);
+        }
         if (!$videoSrc || trim($videoSrc) === '') {
             $missingVideo = true;
         }
@@ -208,7 +213,7 @@ $initialReels = $iN->iN_GetInitialReels($reelID, 2, isset($userID)? (int)$userID
                 </div>
             </div>
 
-            <video src="<?php echo $base_url.$videoSrc; ?>" autoplay muted playsinline preload="auto" crossorigin="anonymous"></video>
+            <video src="<?php echo $videoSrc; ?>" autoplay muted playsinline preload="auto" crossorigin="anonymous"></video>
 
             <div class="reel-ui">
                 <div class="left-ui">

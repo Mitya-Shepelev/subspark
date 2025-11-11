@@ -321,6 +321,74 @@ if (isset($_POST['f']) && $logedIn == '1') {
 	}
 
 
+// Check FFmpeg availability before upload
+if ($type === 'checkFFmpeg') {
+    header('Content-Type: application/json');
+
+    // Check if FFmpeg is enabled in configuration
+    if (!isset($ffmpegStatus) || $ffmpegStatus !== '1') {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'FFmpeg is not enabled. Please contact administrator.',
+            'code' => 'FFMPEG_DISABLED'
+        ]);
+        exit;
+    }
+
+    // Check if FFmpeg path is configured
+    if (empty($ffmpegPath) || empty($ffprobePath)) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'FFmpeg paths are not configured. Please contact administrator.',
+            'code' => 'FFMPEG_NOT_CONFIGURED'
+        ]);
+        exit;
+    }
+
+    // Test if FFmpeg binary exists and is executable
+    $ffmpegExists = file_exists($ffmpegPath) && is_executable($ffmpegPath);
+    $ffprobeExists = file_exists($ffprobePath) && is_executable($ffprobePath);
+
+    if (!$ffmpegExists || !$ffprobeExists) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'FFmpeg is not properly installed. Please contact administrator.',
+            'code' => 'FFMPEG_NOT_FOUND',
+            'details' => [
+                'ffmpeg_path' => $ffmpegPath,
+                'ffmpeg_exists' => $ffmpegExists,
+                'ffprobe_path' => $ffprobePath,
+                'ffprobe_exists' => $ffprobeExists
+            ]
+        ]);
+        exit;
+    }
+
+    // Quick test: run ffmpeg -version to verify it works
+    $testCmd = escapeshellcmd($ffmpegPath) . ' -version 2>&1';
+    $output = [];
+    $returnCode = 0;
+    exec($testCmd, $output, $returnCode);
+
+    if ($returnCode !== 0) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'FFmpeg is installed but not working properly. Please contact administrator.',
+            'code' => 'FFMPEG_NOT_WORKING'
+        ]);
+        exit;
+    }
+
+    // All checks passed
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'FFmpeg is ready',
+        'version' => isset($output[0]) ? $output[0] : 'unknown'
+    ]);
+    exit;
+}
+
+
 if ($type === 'uploadReel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Feature toggle: allow only if reels feature is enabled in admin limits
     if (isset($reelsFeatureStatus) && (string)$reelsFeatureStatus !== '1') {

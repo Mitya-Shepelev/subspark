@@ -355,11 +355,11 @@ echo html_entity_decode($pPinStatus ?? ''); ?>
         			} else {
         				if($userPostWhoCanSee == '3' && $getFriendStatusBetweenTwoUser != 'me' && $getFriendStatusBetweenTwoUser != 'subscriber'){
         				   $filePathWithoutExt = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filePath);
-                           $filePathUrl = $base_url . $filePathWithoutExt . $PathExtension;
-        				   $filePathTumbnailUrl = $base_url . $filePathWithoutExt . $PathExtension;
+                           $filePathUrl = storage_public_url($filePathWithoutExt . $PathExtension);
+        				   $filePathTumbnailUrl = storage_public_url($filePathWithoutExt . $PathExtension);
         				}else{
-        					$filePathUrl = $base_url . $fileData['upload_tumbnail_file_path'];
-        					$filePathTumbnailUrl = $base_url . $fileData['upload_tumbnail_file_path'];
+        					$filePathUrl = storage_public_url($fileData['upload_tumbnail_file_path']);
+        					$filePathTumbnailUrl = storage_public_url($fileData['upload_tumbnail_file_path']);
         				}
         			}
         			$fileisVideo = 'data-poster="' . $filePathUrl . '" data-html="#video' . $fileUploadID . '"';

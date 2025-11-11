@@ -215,9 +215,12 @@ function storage_client(): ?S3Client {
 function storage_public_url(string $key): string {
     $cfg = storage_provider_config();
     if (($cfg['provider'] ?? 'local') === 'local') {
-        // Ensure no leading '../' when serving locally
-        return rtrim($cfg['public_base'], '/') . '/' . ltrim($key, '/');
+        // For local storage, return absolute path from root to avoid /index.php/ prefix issues
+        // Remove any '../' or './' prefixes and ensure leading slash
+        $cleanKey = ltrim($key, './');
+        return '/' . ltrim($cleanKey, '/');
     }
+    // For remote storage (S3, etc.), use public_base URL
     return ($cfg['public_base'] ?? '/') . ltrim($key, '/');
 }
 

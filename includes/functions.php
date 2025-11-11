@@ -3280,6 +3280,7 @@ public function iN_UpdateSiteConfiguration($userID, $watermark, $updateSiteLogo,
             DB::exec("UPDATE i_configurations SET site_watermark_logo = ?, site = ?, site_title = ?, site_keywords = ?, site_description = ?, site_logo = ?, site_favicon = ? WHERE configuration_id = 1",
                 [(string)$watermark,(string)$updateSiteName,(string)$updateSiteTitle,(string)$updateSiteKeywords,(string)$updateSiteDescription,(string)$updateSiteLogo,(string)$updateSiteFavicon]
             );
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -3289,6 +3290,7 @@ public function iN_UpdateSiteBusinessInformations($userID, $updateSiteCampanyNam
             DB::exec("UPDATE i_configurations SET campany = ?, country = ?, city = ?, business_address = ?, post_code = ?, vat = ? WHERE configuration_id = 1",
                 [(string)$updateSiteCampanyName,(string)$updateSiteCountry,(string)$updateSiteCity,(string)$updateSiteBusinessAddress,(string)$updateSitePostCode,(string)$updateSiteVAT]
             );
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -3343,6 +3345,10 @@ public function iN_UpdateLimitValues($userID,
                   (string)$messageScrollNumber, (string)$adsShowLimit,
                   (string)$reelsFeatureStatus, (string)$maxVideoDuration ]
             );
+
+            // Clear configuration cache so new limits take effect immediately
+            Cache::delete('config:main');
+
             return true;
         } else { return false; }
 }
@@ -3351,6 +3357,7 @@ public function iN_UpdateDefaultLanguage($userID, $lang) {
         if ($this->iN_CheckIsAdmin($userID) == 1 && $this->iN_CheckLangIDExist($lang)) {
             $langKey = $this->iN_CheckLangIDExist($lang);
             DB::exec("UPDATE i_configurations SET default_language = ? WHERE configuration_id = 1", [(string)$langKey]);
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -3358,6 +3365,7 @@ public function iN_UpdateDefaultLanguage($userID, $lang) {
 public function iN_UpdateMaintenanceStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET maintenance_mode = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -3365,6 +3373,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
     public function iN_UpdateEmailSendStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET emailSendStatus = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -3374,6 +3383,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
     public function iN_UpdateRegisterStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET register = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -3383,6 +3393,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
     public function iN_UpdateIpLimitStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET ip_limit = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -3394,6 +3405,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
             DB::exec("UPDATE i_configurations SET default_mail = ?, smtp_or_mail = ?, smtp_encryption = ?, smtp_host = ?, smtp_username = ?, smtp_password = ?, smtp_port = ? WHERE configuration_id = 1",
                 [(string)$updateSmtpEmail,(string)$updateSmtpMail,(string)$updateSmtpEncription,(string)$updateSmtpHost,(string)$updateSmtpUsername,(string)$updateSmtpPassword,(string)$updateSmtpPort]
             );
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -3409,13 +3421,14 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
                     [(string)$updateS3Region,(string)$updateS3Bucket,(string)$updateS3Key,(string)$updateS3SecretKey,(string)$updateS3Status]
                 );
                 DB::commit();
+                Cache::delete('config:main');
                 return true;
             } catch (Throwable $e) { DB::rollBack(); return false; }
         } else {
             return false;
         }
     }
-	/*Update AMAZON S3 Settings*/
+	/*Update Wasabi Settings*/
     public function iN_UpdateWasabiDetails($userID, $updateWasRegion, $updateWasBucket, $updateWasKey, $updateWasSecretKey, $updateWasStatus) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::begin();
@@ -3425,6 +3438,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
                     [(string)$updateWasRegion,(string)$updateWasBucket,(string)$updateWasKey,(string)$updateWasSecretKey,(string)$updateWasStatus]
                 );
                 DB::commit();
+                Cache::delete('config:main');
                 return true;
             } catch (Throwable $e) { DB::rollBack(); return false; }
         } else {
@@ -3451,6 +3465,7 @@ public function iN_UpdateMaintenanceStatus($userID, $mod) {
                     ]
                 );
                 DB::commit();
+                Cache::delete('config:main');
                 return true;
             } catch (Throwable $e) { DB::rollBack(); return false; }
         } else {
@@ -4061,6 +4076,7 @@ public function iN_DeleteUser($userID, $deleteUserID) {
             DB::exec("UPDATE i_configurations SET min_tip_amount = ?, subscription_type = ?, default_currency = ?, fee = ?, sub_weekly_minimum_amount = ?, sub_monthly_minimum_amount = ?, sub_yearly_minimum_amount = ?, min_point_limit = ?, max_point_limit = ?, one_point = ?, minimum_withdrawal_amount = ?, min_point_fee_weekly = ?, min_point_fee_monthly = ?, min_point_fee_yearly = ? WHERE configuration_id = 1",
                 [ (string)$minTipAmount,(string)$defaultSubsType,(string)$defaultCurrency,(string)$comissionFee,(string)$minimumSubscriptionAmountWeekly,(string)$minimumSubscriptionAmountMonthly,(string)$minimumSubscriptionAmountYearly,(string)$minimumPointAmount,(string)$maximumPointAmount,(string)$pointToMoney,(string)$minWihDrawlAmount,(string)$minFeePointWeekly,(string)$minFeePointMonthly,(string)$minFeePointYearly ]
             );
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -4527,6 +4543,7 @@ public function iN_ShowAds($numberShow) {
     public function iN_UpdateStripeSubStatus($userID, $mode) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET stripe_status = ? WHERE configuration_id = 1", [(string)$mode]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -4553,6 +4570,7 @@ public function iN_UpdateSubStripeDetails($userID, $stSubSecretKey, $stSubPublic
                     [(string)$stSubSecretKey, (string)$stSubPublicKey, (string)$stSubCurrency, (string)$webhookSecret]
                 );
             }
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -4560,6 +4578,7 @@ public function iN_UpdateSubStripeDetails($userID, $stSubSecretKey, $stSubPublic
 public function iN_UpdateGiphyAPIKey($userID, $giphyKey) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET giphy_api_key = ? WHERE configuration_id = 1", [(string)$giphyKey]);
+            Cache::delete('config:main');
             return true;
         } else { return false; }
 }
@@ -4775,6 +4794,7 @@ public function iN_UpdateAgoraLiveStreamingSettings($userID,$freeLiveStreamingSt
         DB::exec("UPDATE i_configurations SET free_live_streaming_status = ?, paid_live_streaming_status = ?, agora_status = ?, agora_app_id = ?, agora_certificate = ?, agora_customer_id = ?, free_live_time = ?, minimum_live_streaming_fee = ? WHERE configuration_id = 1",
             [(string)$freeLiveStreamingStatus,(string)$paidLiveStreamingStatus,(string)$liveStatus,(string)$agora_AppID,(string)$agora_Certificate,(string)$agora_CustomerID,(string)$freeLiveLimit,(string)$liveMinimumFee]
         );
+        Cache::delete('config:main');
         return true;
     } else {
         return false;
@@ -4840,6 +4860,7 @@ public function iN_PopularUsersFromLastWeekInExplorePageLanding() {
 public function iN_UpdateTheme($userID, $theme) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET landing_page_type = ? WHERE configuration_id = 1", [(string)$theme]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -4849,6 +4870,7 @@ public function iN_UpdateTheme($userID, $theme) {
 public function iN_UpdateFirstLandingPageImage($userID, $landingImage) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET landing_first_image = ? WHERE configuration_id = 1", [(string)$landingImage]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -4858,6 +4880,7 @@ public function iN_UpdateFirstLandingPageImage($userID, $landingImage) {
 public function iN_UpdateSecondLandingPageImage($userID, $landingImage) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET landing_first_image_arrow = ? WHERE configuration_id = 1", [(string)$landingImage]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5000,6 +5023,7 @@ public function iN_UpdateFifthLandingPageImage($userID, $landingImage) {
                     [(string)$dOceanRegion,(string)$dOgeanBucket,(string)$dOceanKey,(string)$dOceanSecretKey,(string)$dOceanStatus]
                 );
                 DB::commit();
+                Cache::delete('config:main');
                 return true;
             } catch (Throwable $e) { DB::rollBack(); return false; }
         } else {
@@ -5011,6 +5035,7 @@ public function iN_UpdateFifthLandingPageImage($userID, $landingImage) {
     public function iN_UpdateFFMPEGSendStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET ffmpeg_status = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5020,6 +5045,7 @@ public function iN_UpdateFifthLandingPageImage($userID, $landingImage) {
     public function iN_UpdatePostCretaeStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET normal_user_can_post = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5320,6 +5346,7 @@ public function iN_AllTypeReportedCommentList($userID, $paginationLimit, $page) 
 	public function iN_UpdateBlockCountriesStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET user_can_block_country = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5329,6 +5356,7 @@ public function iN_AllTypeReportedCommentList($userID, $paginationLimit, $page) 
 	public function iN_UpdateAutoApprovePostStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET auto_approve_post = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5679,6 +5707,7 @@ public function iN_LiveStreaminsListAllTypeBottom($lastPostID, $showingPost,$use
     public function iN_UpdateAffilateSystemStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET affilate_status = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5688,6 +5717,7 @@ public function iN_LiveStreaminsListAllTypeBottom($lastPostID, $showingPost,$use
     public function iN_UpdateWeeklySubStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET sub_weekly_status = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5697,6 +5727,7 @@ public function iN_LiveStreaminsListAllTypeBottom($lastPostID, $showingPost,$use
     public function iN_UpdateMonthlySubStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET sub_mountly_status = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;
@@ -5706,6 +5737,7 @@ public function iN_LiveStreaminsListAllTypeBottom($lastPostID, $showingPost,$use
     public function iN_UpdateYearlySubStatus($userID, $mod) {
         if ($this->iN_CheckIsAdmin($userID) == 1) {
             DB::exec("UPDATE i_configurations SET sub_yearly_status = ? WHERE configuration_id = 1", [(string)$mod]);
+            Cache::delete('config:main');
             return true;
         } else {
             return false;

@@ -10,9 +10,6 @@ session_start();
 
 // Database connection and base setup
 include_once "connect.php";
-// Centralized storage config and directory bootstrap
-include_once "storage_config.php";
-ensureUploadDirectories();
 
 // Error reporting: environment-aware (robust multi-channel detection)
 // Priority: defined(APP_ENV) > getenv/$_SERVER > .env file > default 'production'
@@ -577,6 +574,11 @@ $oneSignalRestApi = isset($inc['one_signal_rest_api']) ? $inc['one_signal_rest_a
 // Reels feature + max duration
 $reelsFeatureStatus = isset($inc['reels_feature_status']) ? (string)$inc['reels_feature_status'] : '1';
 $maxVideoDuration = isset($inc['max_video_duration']) ? (string)$inc['max_video_duration'] : '15';
+
+// NOW load storage config AFTER $maxVideoDuration is set
+include_once "storage_config.php";
+ensureUploadDirectories();
+
 // Subscription type statuses
 $subWeekStatus = isset($inc['sub_weekly_status']) ? $inc['sub_weekly_status'] : 'no';
 $subMontlyStatus = isset($inc['sub_mountly_status']) ? $inc['sub_mountly_status'] : 'no';
