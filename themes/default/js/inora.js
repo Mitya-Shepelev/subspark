@@ -952,17 +952,13 @@ $(document).ready(function () {
                         '<div class="i_upload_progress"></div>' +
                         '<div class="i_upload_progress_text">0%</div>' +
                     '</div>' +
-                    '<div class="i_upload_file_name">' + fileName + '</div>' +
-                    '<div class="i_upload_file_size">0 MB / 0 MB</div>' +
                     '<div class="i_uploaded_file_box"></div>'
                 );
             } else {
-                $('.i_upload_file_name').text(fileName);
                 $('.i_upload_progress').css('width', '0%');
                 $('.i_upload_progress_text').text('0%');
+                $('.processing-msg').remove();
             }
-
-            var totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
             // Create UpChunk instance
             var upload = UpChunk.createUpload({
@@ -981,19 +977,16 @@ $(document).ready(function () {
             // Progress event
             upload.on('progress', function (progress) {
                 var percent = Math.min(Math.max(Math.round(progress.detail), 0), 100);
-                var progressDecimal = percent / 100;
-                var uploadedMB = ((file.size * progressDecimal) / (1024 * 1024)).toFixed(2);
 
                 $('.i_upload_progress').css('width', percent + '%');
                 $('.i_upload_progress_text').text(percent + '%');
-                $('.i_upload_file_size').text(uploadedMB + ' MB / ' + totalMB + ' MB');
 
                 // Show processing message for video when upload reaches 100%
                 if (percent === 100 && isVideo && !$(".processing-msg").length) {
                     console.log('Video upload complete, showing processing message...');
                     $('.i_upload_progress').addClass('processing-animation');
-                    $('.i_upload_progress_text').text('100% - Обработка видео...');
-                    $(".i_uploaded_iv").append('<div class="processing-msg" style="margin-top: 10px; text-align: center; color: #666;">Конвертация видео, пожалуйста подождите...<br><small>Это может занять несколько минут для длинных видео</small></div>');
+                    $('.i_upload_progress_text').text('Обработка видео...');
+                    $(".i_uploaded_iv").append('<div class="processing-msg">Конвертация и создание миниатюры</div>');
                 }
             });
 
@@ -4668,15 +4661,11 @@ $(document).ready(function () {
             '<div class="i_upload_progress_wrapper">' +
                 '<div class="i_upload_progress"></div>' +
                 '<div class="i_upload_progress_text">0%</div>' +
-            '</div>' +
-            '<div class="i_upload_file_size">0 MB / 0 MB</div>'
+            '</div>'
         ).show();
 
         // Disable publish button
         $(".publish").prop("disabled", true).css("pointer-events", "none");
-
-        // Calculate file size for display
-        var totalMB = (file.size / (1024 * 1024)).toFixed(2);
 
         // Create UpChunk instance
         var upload = UpChunk.createUpload({
@@ -4694,23 +4683,19 @@ $(document).ready(function () {
         upload.on('progress', function (progress) {
             // UpChunk returns progress.detail as 0-100 (already multiplied by 100)
             var percent = Math.min(Math.max(Math.round(progress.detail), 0), 100);
-            var progressDecimal = percent / 100;  // Convert back to 0-1 for calculations
-            var uploadedMB = ((file.size * progressDecimal) / (1024 * 1024)).toFixed(2);
 
             // Update progress bar
             $('.i_upload_progress').css('width', percent + '%');
             $('.i_upload_progress_text').text(percent + '%');
-            $('.i_upload_file_size').text(uploadedMB + ' MB / ' + totalMB + ' MB');
 
-            console.log('Upload progress:', percent + '%', '(' + uploadedMB + ' MB / ' + totalMB + ' MB)');
+            console.log('Upload progress:', percent + '%');
 
             // Show processing message when upload reaches 100%
             if (percent === 100 && !$(".processing-msg").length) {
                 console.log('Upload complete, showing processing message...');
                 $('.i_upload_progress').addClass('processing-animation');
-                $('.i_upload_progress_text').text('100% - Обработка видео...');
-                var convertingMsg = $("#uploadReelsform").data('lang-converting') || 'Конвертация видео, пожалуйста подождите...';
-                $(".i_uploaded_iv").append('<div class="processing-msg" style="margin-top: 10px; text-align: center; color: #666;">' + convertingMsg + '<br><small>Это может занять несколько минут для длинных видео</small></div>');
+                $('.i_upload_progress_text').text('Обработка видео...');
+                $(".i_uploaded_iv").append('<div class="processing-msg">Конвертация в формат Reels</div>');
             }
         });
 
