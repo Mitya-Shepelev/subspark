@@ -73,6 +73,41 @@ services:
       - FFMPEG_PATH=${FFMPEG_PATH:-/usr/bin/ffmpeg}
       - FFMPEG_PROBE=${FFMPEG_PROBE:-/usr/bin/ffprobe}
 
+      # Async video processing (0=sync, 1=async with worker)
+      - USE_ASYNC_VIDEO_PROCESSING=${USE_ASYNC_VIDEO_PROCESSING:-0}
+
+  # Video Processing Worker (runs FFmpeg jobs asynchronously)
+  # NOTE: Currently not used - requires database schema changes
+  # See worker/README.md for implementation guide
+  video-worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: subspark-video-worker
+    restart: unless-stopped
+    networks:
+      - redis_default
+    volumes:
+      - uploads_data:/app/uploads:rw
+    environment:
+      # Redis configuration (shared with main app)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+
+      # FFmpeg paths (from Alpine Linux)
+      - FFMPEG_PATH=/usr/bin/ffmpeg
+      - FFMPEG_PROBE=/usr/bin/ffprobe
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Limit to 2 CPU cores
+          memory: 2G        # Limit to 2GB RAM
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
 volumes:
   uploads_data:
     driver: local
