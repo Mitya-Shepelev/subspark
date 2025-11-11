@@ -65,8 +65,8 @@ RUN { \
 RUN { \
         echo 'upload_max_filesize=128M'; \
         echo 'post_max_size=128M'; \
-        echo 'max_execution_time=300'; \
-        echo 'max_input_time=300'; \
+        echo 'max_execution_time=600'; \
+        echo 'max_input_time=600'; \
         echo 'memory_limit=256M'; \
         echo 'display_errors=Off'; \
         echo 'expose_php=Off'; \
