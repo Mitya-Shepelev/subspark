@@ -68,6 +68,11 @@ services:
       - SPACES_SECRET=${SPACES_SECRET}
       - SPACES_PUBLIC_BASE=${SPACES_PUBLIC_BASE}
 
+      # FFmpeg configuration (installed in container)
+      - FFMPEG_STATUS=${FFMPEG_STATUS:-1}
+      - FFMPEG_PATH=${FFMPEG_PATH:-/usr/bin/ffmpeg}
+      - FFMPEG_PROBE=${FFMPEG_PROBE:-/usr/bin/ffprobe}
+
 volumes:
   uploads_data:
     driver: local

@@ -388,7 +388,13 @@ $availableLength = isset($inc['available_length']) ? $inc['available_length'] : 
 // FFMPEG media processing support
 $ffmpegPath   = isset($inc['ffmpeg_path']) ? $inc['ffmpeg_path'] : NULL;
 $ffprobePath  = isset($inc['ffmpeg_probe']) ? $inc['ffmpeg_probe'] : NULL; // optional, may be null if not set
-$ffmpegStatus = $inc['ffmpeg_status'];
+$ffmpegStatus = isset($inc['ffmpeg_status']) ? $inc['ffmpeg_status'] : '0';
+
+// Environment overrides (developer-friendly)
+$ffmpegStatus = getenv('FFMPEG_STATUS') ?: $ffmpegStatus;
+$ffmpegPath   = getenv('FFMPEG_PATH')   ?: $ffmpegPath;
+$ffprobePath  = getenv('FFMPEG_PROBE')  ?: $ffprobePath;
+
 $pixelSize = $inc['pixelSize'];
 
 // General content listing preferences
