@@ -67,7 +67,7 @@ RUN { \
         echo 'post_max_size=128M'; \
         echo 'max_execution_time=600'; \
         echo 'max_input_time=600'; \
-        echo 'memory_limit=256M'; \
+        echo 'memory_limit=512M'; \
         echo 'display_errors=Off'; \
         echo 'expose_php=Off'; \
         echo 'allow_url_fopen=On'; \
@@ -81,6 +81,11 @@ RUN { \
         echo 'clear_env = no'; \
         echo 'catch_workers_output = yes'; \
         echo 'decorate_workers_output = no'; \
+        echo '; Maximum time for processing a single request (10 minutes for FFmpeg)'; \
+        echo 'request_terminate_timeout = 600'; \
+        echo '; Log slow requests (30 seconds)'; \
+        echo 'request_slowlog_timeout = 30'; \
+        echo 'slowlog = /proc/self/fd/2'; \
     } > /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # Create nginx config
