@@ -69,6 +69,52 @@ services:
       - SPACES_SECRET=${SPACES_SECRET:-}
       - SPACES_PUBLIC_BASE=${SPACES_PUBLIC_BASE:-}
 
+      # FFmpeg configuration (installed in container)
+      - FFMPEG_STATUS=${FFMPEG_STATUS:-1}
+      - FFMPEG_PATH=${FFMPEG_PATH:-/usr/bin/ffmpeg}
+      - FFMPEG_PROBE=${FFMPEG_PROBE:-/usr/bin/ffprobe}
+
+      # Async video processing (0=sync, 1=async with worker)
+      # WARNING: Requires database changes and worker deployment
+      # See АРХИТЕКТУРА_ВИДЕО_ОБРАБОТКИ.md before enabling
+      - USE_ASYNC_VIDEO_PROCESSING=${USE_ASYNC_VIDEO_PROCESSING:-0}
+
+  # Video Processing Worker (FFmpeg jobs)
+  # IMPORTANT: Disabled by default - requires database schema changes
+  # To enable:
+  #   1. Uncomment this service
+  #   2. Set USE_ASYNC_VIDEO_PROCESSING=1 in app service
+  #   3. Apply database migrations (see АРХИТЕКТУРА_ВИДЕО_ОБРАБОТКИ.md)
+  #   4. Update stack in Portainer
+  #
+  # video-worker:
+  #   image: ghcr.io/mitya-shepelev/subspark-worker:latest
+  #   container_name: subspark-video-worker
+  #   restart: unless-stopped
+  #   pull_policy: always
+  #   networks:
+  #     - redis_default
+  #   volumes:
+  #     - uploads_data:/app/uploads:rw
+  #   environment:
+  #     # Redis configuration (shared with main app)
+  #     - REDIS_HOST=${REDIS_HOST:-redis}
+  #     - REDIS_PORT=${REDIS_PORT:-6379}
+  #     - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+  #     - REDIS_DB=${REDIS_DB:-0}
+  #
+  #     # FFmpeg paths (from Alpine Linux)
+  #     - FFMPEG_PATH=/usr/bin/ffmpeg
+  #     - FFMPEG_PROBE=/usr/bin/ffprobe
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '2.0'
+  #         memory: 2G
+  #       reservations:
+  #         cpus: '0.5'
+  #         memory: 512M
+
 volumes:
   uploads_data:
     driver: local
