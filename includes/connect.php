@@ -21,10 +21,11 @@ define('DB_DATABASE', 'subspark');
 // ✅ DATABASE CONNECTION (PDO-only)
 // --------------------------------------------------------------------------
 // Allow environment overrides for deployment flexibility
-$__db_server = getenv('DB_SERVER') ?: DB_SERVER;
-$__db_user   = getenv('DB_USERNAME') ?: DB_USERNAME;
+// Support both naming conventions: DB_SERVER/DB_HOST, DB_USERNAME/DB_USER, DB_DATABASE/DB_NAME
+$__db_server = getenv('DB_HOST') ?: getenv('DB_SERVER') ?: DB_SERVER;
+$__db_user   = getenv('DB_USER') ?: getenv('DB_USERNAME') ?: DB_USERNAME;
 $__db_pass   = getenv('DB_PASSWORD') ?: DB_PASSWORD;
-$__db_name   = getenv('DB_DATABASE') ?: DB_DATABASE;
+$__db_name   = getenv('DB_NAME') ?: getenv('DB_DATABASE') ?: DB_DATABASE;
 
 // Maintain legacy variable for compatibility (no mysqli usage anymore)
 $db = null;
