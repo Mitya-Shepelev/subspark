@@ -370,7 +370,7 @@ class VideoWorker
                  SET uploaded_file_path = ?,
                      upload_tumbnail_file_path = ?,
                      processing_status = 'completed'
-                 WHERE iuid = ?",
+                 WHERE upload_id = ?",
                 [$storageReelsPath, $storageThumbnailPath, $fileID]
             );
 
@@ -383,7 +383,7 @@ class VideoWorker
             // Mark as failed in database
             try {
                 DB::exec(
-                    "UPDATE i_user_uploads SET processing_status = 'failed' WHERE iuid = ?",
+                    "UPDATE i_user_uploads SET processing_status = 'failed' WHERE upload_id = ?",
                     [$fileID]
                 );
             } catch (Exception $dbError) {
