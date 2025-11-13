@@ -406,7 +406,7 @@ if ($type === 'uploadReel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     });
     // Defensive limits: reels processing can be CPU heavy
-    @set_time_limit(300);
+    @set_time_limit(1800);
     @ini_set('memory_limit', '512M');
 
     // Ensure required server functions are available
