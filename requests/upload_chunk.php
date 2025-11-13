@@ -171,6 +171,81 @@ if ($isComplete) {
         }
         error_log("[upload_chunk] File moved successfully. Size: " . filesize($finalPath) . " bytes");
 
+        // Check if async video processing is enabled
+        $useAsyncProcessing = getenv('USE_ASYNC_VIDEO_PROCESSING') === '1';
+
+        if ($useAsyncProcessing) {
+            error_log("[upload_chunk] Async processing enabled, checking Redis availability");
+            require_once APP_ROOT_PATH . '/includes/video_queue_helper.php';
+
+            if (isAsyncVideoProcessingAvailable()) {
+                error_log("[upload_chunk] Using ASYNC processing via Redis queue");
+
+                // Insert preliminary record into database with 'processing' status
+                $uploadTime = time();
+                DB::exec(
+                    "INSERT INTO i_user_uploads (iuid_fk, upload_type, uploaded_file_path, uploaded_file_ext, upload_tumbnail_file_path, upload_time, processing_status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [(int)$userID, 'reels', '', 'mp4', '', $uploadTime, 'processing']
+                );
+
+                $fileID = DB::lastId();
+                error_log("[upload_chunk] DB record created with fileID=$fileID, status=processing");
+
+                // Queue the video processing job
+                $reelsDir = APP_ROOT_PATH . '/uploads/reels/' . $todayDir;
+                if (!is_dir($reelsDir)) {
+                    @mkdir($reelsDir, 0755, true);
+                }
+
+                // Queue the job with all necessary data
+                $redis = getVideoQueueRedis();
+                require_once APP_ROOT_PATH . '/worker/VideoJob.php';
+                require_once APP_ROOT_PATH . '/worker/VideoQueue.php';
+
+                $job = new VideoJob([
+                    'type' => 'reel_upload',
+                    'data' => [
+                        'userID' => $userID,
+                        'fileID' => $fileID,
+                        'sourcePath' => $finalPath,
+                        'outputDir' => $reelsDir,
+                        'todayDir' => $todayDir,
+                        'maxVideoDuration' => isset($maxVideoDuration) ? (int)$maxVideoDuration : 90,
+                    ],
+                ]);
+
+                $queue = new VideoQueue($redis);
+                $success = $queue->addJob($job);
+
+                if ($success) {
+                    error_log("[upload_chunk] Job queued successfully: {$job->id}");
+
+                    // Cleanup temp directory
+                    @rmdir($tempDir);
+
+                    // Return success immediately WITHOUT waiting for FFmpeg
+                    http_response_code(202); // 202 Accepted - processing in background
+                    echo json_encode([
+                        'success' => true,
+                        'file_id' => $fileID,
+                        'job_id' => $job->id,
+                        'status' => 'processing',
+                        'message' => $LANG['video_processing_in_background'] ?? 'Video is being processed. You will be notified when ready.'
+                    ]);
+                    exit;
+                } else {
+                    error_log("[upload_chunk] Failed to queue job, falling back to sync processing");
+                    // Fall through to synchronous processing
+                }
+            } else {
+                error_log("[upload_chunk] Redis not available, falling back to sync processing");
+                // Fall through to synchronous processing
+            }
+        } else {
+            error_log("[upload_chunk] Async processing disabled, using SYNC processing");
+        }
+
         // Now process with FFmpeg (same as standard upload)
         // Check video duration
         $probeBin = isset($ffprobePath) && !empty($ffprobePath) ? $ffprobePath : '/opt/homebrew/bin/ffprobe';

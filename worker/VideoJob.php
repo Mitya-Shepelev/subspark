@@ -7,7 +7,7 @@
 class VideoJob
 {
     public string $id;
-    public string $type; // 'convert' | 'thumbnail' | 'reel_blur'
+    public string $type; // 'convert' | 'thumbnail' | 'reel_blur' | 'reel_upload'
     public array $data;
     public string $status; // 'pending' | 'processing' | 'completed' | 'failed'
     public int $attempts;

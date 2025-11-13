@@ -74,6 +74,9 @@ class VideoWorker
             case 'reel_blur':
                 return $this->createBlurredReel($job->data);
 
+            case 'reel_upload':
+                return $this->processReelUpload($job->data);
+
             default:
                 error_log("[VideoWorker] Unknown job type: {$job->type}");
                 return false;
@@ -235,6 +238,160 @@ class VideoWorker
 
         error_log("[VideoWorker] Blurred reel creation failed. Output: {$output}");
         return false;
+    }
+
+    /**
+     * Process full reel upload workflow
+     * This mimics the synchronous processing from upload_chunk.php
+     */
+    private function processReelUpload(array $data): bool
+    {
+        $userID = $data['userID'] ?? null;
+        $fileID = $data['fileID'] ?? null;
+        $sourcePath = $data['sourcePath'] ?? null;
+        $outputDir = $data['outputDir'] ?? null;
+        $todayDir = $data['todayDir'] ?? date('Y-m-d');
+        $maxVideoDuration = $data['maxVideoDuration'] ?? 90;
+
+        if (!$userID || !$fileID || !$sourcePath || !$outputDir) {
+            error_log("[VideoWorker] Missing required fields for reel_upload job");
+            return false;
+        }
+
+        if (!file_exists($sourcePath)) {
+            error_log("[VideoWorker] Source file not found: {$sourcePath}");
+            return false;
+        }
+
+        error_log("[VideoWorker] Processing reel upload: fileID={$fileID}, source={$sourcePath}");
+
+        try {
+            // Load includes for database and storage
+            require_once '/var/www/html/includes/inc.php';
+            require_once '/var/www/html/includes/convertToMp4Format.php';
+            require_once '/var/www/html/includes/convertVideoToBlurredReelsFormat.php';
+            require_once '/var/www/html/includes/createVideoThumbnail.php';
+
+            // 1. Check video duration
+            $probeCmd = escapeshellcmd($this->ffprobePath)
+                . ' -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '
+                . escapeshellarg($sourcePath);
+
+            $durationOutput = shell_exec($probeCmd);
+            $duration = floatval($durationOutput);
+            error_log("[VideoWorker] Video duration: {$duration}s, max: {$maxVideoDuration}s");
+
+            if ($duration === 0.0) {
+                throw new Exception('Could not read video duration');
+            }
+
+            if ($duration > $maxVideoDuration) {
+                @unlink($sourcePath);
+                throw new Exception("Video exceeds maximum duration of {$maxVideoDuration}s");
+            }
+
+            // 2. Convert to MP4 if needed
+            $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+            $needsConversion = !in_array($ext, ['mp4']);
+
+            if ($needsConversion) {
+                error_log("[VideoWorker] Converting to MP4");
+                $uploadDir = dirname($sourcePath);
+                $convertedPath = convertToMp4Format($this->ffmpegPath, $sourcePath, $uploadDir);
+
+                if (!$convertedPath || !file_exists($convertedPath)) {
+                    throw new Exception('MP4 conversion failed');
+                }
+
+                @unlink($sourcePath);
+                $sourcePath = $convertedPath;
+                error_log("[VideoWorker] MP4 conversion complete: {$sourcePath}");
+            }
+
+            // 3. Convert to Reels format (9:16 with blur)
+            if (!is_dir($outputDir)) {
+                @mkdir($outputDir, 0755, true);
+            }
+
+            error_log("[VideoWorker] Converting to reels format");
+            $reelsPath = convertVideoToBlurredReelsFormat($this->ffmpegPath, $sourcePath, $outputDir);
+
+            if (!$reelsPath || !file_exists($reelsPath)) {
+                throw new Exception('Reels format conversion failed');
+            }
+
+            error_log("[VideoWorker] Reels conversion complete: {$reelsPath}");
+
+            // Delete source after successful conversion
+            @unlink($sourcePath);
+
+            // 4. Generate thumbnail
+            error_log("[VideoWorker] Generating thumbnail");
+            $thumbnailPath = createVideoThumbnailInSameDir($this->ffmpegPath, $reelsPath);
+            error_log("[VideoWorker] Thumbnail: " . ($thumbnailPath ?: 'none'));
+
+            // 5. Upload to remote storage if configured
+            $storageReelsPath = $reelsPath;
+            $storageThumbnailPath = $thumbnailPath;
+
+            if (function_exists('storage_is_remote') && storage_is_remote()) {
+                error_log("[VideoWorker] Uploading to remote storage");
+                require_once '/var/www/html/includes/object_storage.php';
+
+                // Upload video
+                if (file_exists($reelsPath)) {
+                    $s3ReelsKey = 'uploads/reels/' . $todayDir . '/' . basename($reelsPath);
+                    storage_upload($reelsPath, $s3ReelsKey);
+                    $storageReelsPath = $s3ReelsKey;
+                    @unlink($reelsPath);
+                    error_log("[VideoWorker] Video uploaded to: {$s3ReelsKey}");
+                }
+
+                // Upload thumbnail
+                if ($thumbnailPath && file_exists($thumbnailPath)) {
+                    $s3ThumbKey = 'uploads/reels/' . $todayDir . '/' . basename($thumbnailPath);
+                    storage_upload($thumbnailPath, $s3ThumbKey);
+                    $storageThumbnailPath = $s3ThumbKey;
+                    @unlink($thumbnailPath);
+                    error_log("[VideoWorker] Thumbnail uploaded to: {$s3ThumbKey}");
+                }
+            } else {
+                // Convert to relative paths for local storage
+                $storageReelsPath = str_replace('/var/www/html/', '', $reelsPath);
+                if ($thumbnailPath) {
+                    $storageThumbnailPath = str_replace('/var/www/html/', '', $thumbnailPath);
+                }
+            }
+
+            // 6. Update database with final paths and mark as completed
+            error_log("[VideoWorker] Updating database: fileID={$fileID}");
+            DB::exec(
+                "UPDATE i_user_uploads
+                 SET uploaded_file_path = ?,
+                     upload_tumbnail_file_path = ?,
+                     processing_status = 'completed'
+                 WHERE iuid = ?",
+                [$storageReelsPath, $storageThumbnailPath, $fileID]
+            );
+
+            error_log("[VideoWorker] Reel upload processing complete: fileID={$fileID}");
+            return true;
+
+        } catch (Exception $e) {
+            error_log("[VideoWorker] Reel upload failed: " . $e->getMessage());
+
+            // Mark as failed in database
+            try {
+                DB::exec(
+                    "UPDATE i_user_uploads SET processing_status = 'failed' WHERE iuid = ?",
+                    [$fileID]
+                );
+            } catch (Exception $dbError) {
+                error_log("[VideoWorker] Failed to update DB status: " . $dbError->getMessage());
+            }
+
+            return false;
+        }
     }
 
     /**
