@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/mitya-shepelev/subspark:latest
+    container_name: subspark-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8082}:80"
+    pull_policy: always
+    networks:
+      - nginx-proxy-manager_default
+      - mysql-8_default
+      - redis_default
+    volumes:
+      - uploads_data:/var/www/html/uploads
+    environment:
+      # Database configuration (external MySQL)
+      - DB_SERVER=${DB_SERVER:-mysql-8-mysql_db-1}
+      - DB_USERNAME=${DB_USERNAME:-subspark}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE:-subspark}
+
+      # Redis configuration (external Redis)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+
+      # Selectel S3 Storage (optional)
+      - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
+      - SELECTEL_BUCKET=${SELECTEL_BUCKET:-}
+      - SELECTEL_REGION=${SELECTEL_REGION:-ru-1}
+      - SELECTEL_KEY=${SELECTEL_KEY:-}
+      - SELECTEL_SECRET=${SELECTEL_SECRET:-}
+      - SELECTEL_ENDPOINT=${SELECTEL_ENDPOINT:-https://s3.ru-1.storage.selcloud.ru}
+      - SELECTEL_PUBLIC_BASE=${SELECTEL_PUBLIC_BASE:-}
+
+      # MinIO Storage (optional)
+      - MINIO_STATUS=${MINIO_STATUS:-0}
+      - MINIO_BUCKET=${MINIO_BUCKET:-}
+      - MINIO_REGION=${MINIO_REGION:-us-east-1}
+      - MINIO_KEY=${MINIO_KEY:-}
+      - MINIO_SECRET=${MINIO_SECRET:-}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-}
+      - MINIO_PUBLIC_BASE=${MINIO_PUBLIC_BASE:-}
+
+      # S3 Storage (optional)
+      - S3_STATUS=${S3_STATUS:-0}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-}
+      - S3_KEY=${S3_KEY:-}
+      - S3_SECRET=${S3_SECRET:-}
+      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-}
+
+      # Wasabi Storage (optional)
+      - WASABI_STATUS=${WASABI_STATUS:-0}
+      - WASABI_BUCKET=${WASABI_BUCKET:-}
+      - WASABI_REGION=${WASABI_REGION:-}
+      - WASABI_KEY=${WASABI_KEY:-}
+      - WASABI_SECRET=${WASABI_SECRET:-}
+      - WASABI_PUBLIC_BASE=${WASABI_PUBLIC_BASE:-}
+
+      # DigitalOcean Spaces (optional)
+      - SPACES_STATUS=${SPACES_STATUS:-0}
+      - SPACES_NAME=${SPACES_NAME:-}
+      - SPACES_REGION=${SPACES_REGION:-}
+      - SPACES_KEY=${SPACES_KEY:-}
+      - SPACES_SECRET=${SPACES_SECRET:-}
+      - SPACES_PUBLIC_BASE=${SPACES_PUBLIC_BASE:-}
+
+      # FFmpeg configuration (installed in container)
+      - FFMPEG_STATUS=${FFMPEG_STATUS:-1}
+      - FFMPEG_PATH=${FFMPEG_PATH:-/usr/bin/ffmpeg}
+      - FFMPEG_PROBE=${FFMPEG_PROBE:-/usr/bin/ffprobe}
+
+      # Async video processing (ENABLED for production)
+      # Prevents timeout errors during FFmpeg video processing
+      # Requires: video-worker service + Redis + DB migration
+      - USE_ASYNC_VIDEO_PROCESSING=${USE_ASYNC_VIDEO_PROCESSING:-1}
+
+  # Video Processing Worker (FFmpeg jobs in background)
+  # Processes video reels asynchronously to prevent timeout errors
+  video-worker:
+    image: ghcr.io/mitya-shepelev/subspark-worker:latest
+    container_name: subspark-video-worker
+    restart: unless-stopped
+    pull_policy: always
+    networks:
+      - mysql-8_default  # ВАЖНО: нужен для обновления БД после обработки
+      - redis_default
+    volumes:
+      - uploads_data:/app/uploads:rw
+    environment:
+      # Database configuration (same as main app)
+      - DB_SERVER=${DB_SERVER:-mysql-8-mysql_db-1}
+      - DB_USERNAME=${DB_USERNAME:-subspark}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE:-subspark}
+
+      # Redis configuration (shared with main app)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
+
+      # Storage configuration (same as main app)
+      - SELECTEL_STATUS=${SELECTEL_STATUS:-0}
+      - SELECTEL_BUCKET=${SELECTEL_BUCKET:-}
+      - SELECTEL_REGION=${SELECTEL_REGION:-ru-1}
+      - SELECTEL_KEY=${SELECTEL_KEY:-}
+      - SELECTEL_SECRET=${SELECTEL_SECRET:-}
+      - SELECTEL_ENDPOINT=${SELECTEL_ENDPOINT:-https://s3.ru-1.storage.selcloud.ru}
+      - SELECTEL_PUBLIC_BASE=${SELECTEL_PUBLIC_BASE:-}
+
+      # FFmpeg paths (from Alpine Linux)
+      - FFMPEG_PATH=/usr/bin/ffmpeg
+      - FFMPEG_PROBE=/usr/bin/ffprobe
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Limit to 2 CPU cores
+          memory: 2G        # Limit to 2GB RAM
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  uploads_data:
+    driver: local
+
+networks:
+  nginx-proxy-manager_default:
+    external: true
+  mysql-8_default:
+    external: true
+  redis_default:
+    external: true
