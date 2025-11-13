@@ -267,10 +267,10 @@ class VideoWorker
 
         try {
             // Load includes for database and storage
-            require_once '/var/www/html/includes/inc.php';
-            require_once '/var/www/html/includes/convertToMp4Format.php';
-            require_once '/var/www/html/includes/convertVideoToBlurredReelsFormat.php';
-            require_once '/var/www/html/includes/createVideoThumbnail.php';
+            require_once __DIR__ . '/includes/inc.php';
+            require_once __DIR__ . '/includes/convertToMp4Format.php';
+            require_once __DIR__ . '/includes/convertVideoToBlurredReelsFormat.php';
+            require_once __DIR__ . '/includes/createVideoThumbnail.php';
 
             // 1. Check video duration
             $probeCmd = escapeshellcmd($this->ffprobePath)
@@ -336,7 +336,7 @@ class VideoWorker
 
             if (function_exists('storage_is_remote') && storage_is_remote()) {
                 error_log("[VideoWorker] Uploading to remote storage");
-                require_once '/var/www/html/includes/object_storage.php';
+                require_once __DIR__ . '/includes/object_storage.php';
 
                 // Upload video
                 if (file_exists($reelsPath)) {
