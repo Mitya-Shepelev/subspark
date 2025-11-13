@@ -288,12 +288,12 @@ $LANG = array(
 	'joined' => 'Присоединился',
 	'become_a_subscriber' => 'Стать подписчиком',
 	'unsubscribe' => 'Отписаться',
-	'follow' => 'Подписаться (Follow)',
+	'follow' => 'Подписаться',
 	'unfollow' => 'Отписаться (UnFollow)',
 	'subscription_benefits' => 'ПРЕИМУЩЕСТВА ПОДПИСКИ:',
 	'full_acces_to_conent' => 'Полный доступ к контенту этого пользователя',
 	'direct_message_this_user' => 'Отправить личное сообщение этому пользователю',
-	'cancel_follow_any_time' => 'Отменить подписку (follow) в любое время',
+	'cancel_follow_any_time' => 'Отменить подписку в любое время',
 	'cancel_subs_any_time' => 'Отменить подписку в любое время',
 	'follow_for_free' => 'ПОДПИСАТЬСЯ БЕСПЛАТНО',
 	'you_are_following' => 'Вы подписаны на этого пользователя. Вы сможете видеть посты этого пользователя в своей ленте новостей.',
@@ -2324,14 +2324,14 @@ class TimeAgo {
 	 *  @var Array
 	 */
 	public static $weekDays = array(
-"Sunday"    => "Воскресенье",
-"Monday"    => "Понедельник",
-"Tuesday"   => "Вторник",
-"Wednesday" => "Среда",
-"Thursday"  => "Четверг",
-"Friday"    => "Пятница",
-"Saturday"  => "Суббота",
-);
+		0 => "Воскресенье",  // Sunday
+		1 => "Понедельник",  // Monday
+		2 => "Вторник",      // Tuesday
+		3 => "Среда",        // Wednesday
+		4 => "Четверг",      // Thursday
+		5 => "Пятница",      // Friday
+		6 => "Суббота",      // Saturday
+		);
 
 	/** Function to calcuate elapsed time (Check link for valid formats)
 	 * @param 	String 	$time			- Time
