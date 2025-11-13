@@ -2659,7 +2659,7 @@ $(document).ready(function () {
             },
             success: function(response) {
                 if (response != '404') {
-                    location.reload();
+                    location.reload(true);
                 } else {
                     PopUPAlerts('sWrong', 'ialert');
                 }
