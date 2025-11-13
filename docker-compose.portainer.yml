@@ -88,7 +88,7 @@ services:
     networks:
       - redis_default
     volumes:
-      - uploads_data:/app/uploads:rw
+      - uploads_data:/var/www/html/uploads:rw
     environment:
       # Redis configuration (shared with main app)
       - REDIS_HOST=${REDIS_HOST:-redis}

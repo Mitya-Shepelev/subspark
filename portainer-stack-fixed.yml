@@ -90,7 +90,7 @@ services:
       - mysql-8_default  # ВАЖНО: нужен для обновления БД после обработки
       - redis_default
     volumes:
-      - uploads_data:/app/uploads:rw
+      - uploads_data:/var/www/html/uploads:rw  # ВАЖНО: путь должен совпадать с app контейнером
     environment:
       # Database configuration (same as main app)
       - DB_SERVER=${DB_SERVER:-mysql-8-mysql_db-1}
