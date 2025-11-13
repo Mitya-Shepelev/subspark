@@ -266,8 +266,8 @@ class VideoWorker
         error_log("[VideoWorker] Processing reel upload: fileID={$fileID}, source={$sourcePath}");
 
         try {
-            // Load includes for database and storage
-            require_once __DIR__ . '/includes/inc.php';
+            // Load minimal bootstrap for worker (database, storage, no web-specific code)
+            require_once __DIR__ . '/includes/worker_bootstrap.php';
             require_once __DIR__ . '/includes/convertToMp4Format.php';
             require_once __DIR__ . '/includes/convertVideoToBlurredReelsFormat.php';
             require_once __DIR__ . '/includes/createVideoThumbnail.php';
