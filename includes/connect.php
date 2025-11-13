@@ -73,34 +73,41 @@ Once you enter the correct credentials, reload the page.
 // --------------------------------------------------------------------------
 // ✅ BASE URL DETECTION
 // --------------------------------------------------------------------------
-// Detect base URL robustly (works behind Nginx/proxies and with custom ports)
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-// Honor proxy headers if present
-$forwardProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? null;
-$forwardHost  = $_SERVER['HTTP_X_FORWARDED_HOST']  ?? null;
-$forwardPort  = $_SERVER['HTTP_X_FORWARDED_PORT']  ?? null;
+// Skip URL detection in CLI mode (worker processes)
+if (PHP_SAPI === 'cli') {
+    // CLI mode: get base URL from environment variable
+    $base_url = getenv('APP_URL') ?: getenv('BASE_URL') ?: 'http://localhost/';
+    $base_url = rtrim($base_url, '/') . '/';
+} else {
+    // Web mode: detect base URL robustly (works behind Nginx/proxies and with custom ports)
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    // Honor proxy headers if present
+    $forwardProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? null;
+    $forwardHost  = $_SERVER['HTTP_X_FORWARDED_HOST']  ?? null;
+    $forwardPort  = $_SERVER['HTTP_X_FORWARDED_PORT']  ?? null;
 
-$scheme = $forwardProto ?: $protocol;
-$host   = $forwardHost ?: ($_SERVER['HTTP_HOST'] ?? 'localhost');
-if ($forwardPort && strpos($host, ':') === false) {
-    $host .= ':' . $forwardPort;
-}
+    $scheme = $forwardProto ?: $protocol;
+    $host   = $forwardHost ?: ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    if ($forwardPort && strpos($host, ':') === false) {
+        $host .= ':' . $forwardPort;
+    }
 
-$scriptName = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-$rootPath = rtrim(preg_replace('/(\/requests|\/includes|\/themes|\/langs|\/src|\/ajax|\/admin|\/panel).*/i', '', $scriptName), '/');
-$base_url = $scheme . '://' . $host . $rootPath . '/';
+    $scriptName = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+    $rootPath = rtrim(preg_replace('/(\/requests|\/includes|\/themes|\/langs|\/src|\/ajax|\/admin|\/panel).*/i', '', $scriptName), '/');
+    $base_url = $scheme . '://' . $host . $rootPath . '/';
 
-// Allow explicit override via env (e.g., fastcgi_param APP_URL http://example.com/)
-$appUrlOverride = getenv('APP_URL') ?: getenv('BASE_URL');
-if ($appUrlOverride) {
-    $base_url = rtrim($appUrlOverride, '/') . '/';
+    // Allow explicit override via env (e.g., fastcgi_param APP_URL http://example.com/)
+    $appUrlOverride = getenv('APP_URL') ?: getenv('BASE_URL');
+    if ($appUrlOverride) {
+        $base_url = rtrim($appUrlOverride, '/') . '/';
+    }
 }
 
 // --------------------------------------------------------------------------
 // ✅ FILE SYSTEM PATHS
 // --------------------------------------------------------------------------
 // Absolute document root (web server) — still useful for some contexts
-$serverDocumentRoot = realpath($_SERVER['DOCUMENT_ROOT']);
+$serverDocumentRoot = (PHP_SAPI === 'cli') ? null : realpath($_SERVER['DOCUMENT_ROOT'] ?? '');
 
 // Absolute application root (handles subfolder installs)
 $appRootPath = realpath(dirname(__DIR__)); // e.g., .../htdocs/dizzyv5.3

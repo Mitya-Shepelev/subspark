@@ -12,6 +12,15 @@ date_default_timezone_set('UTC');
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/db.php';
 
+// Initialize DB class with PDO instance (CRITICAL!)
+if (isset($pdo) && $pdo instanceof PDO) {
+    DB::init($pdo);
+    error_log("[Worker Bootstrap] DB initialized successfully");
+} else {
+    error_log("[Worker Bootstrap] ERROR: PDO not available");
+    throw new RuntimeException('Database connection failed in worker bootstrap');
+}
+
 // Load storage configuration
 require_once __DIR__ . '/storage_config.php';
 
