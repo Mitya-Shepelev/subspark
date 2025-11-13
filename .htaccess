@@ -59,6 +59,12 @@ RewriteRule ^(themes|includes|sources|langs|src)/.*\.(php|phtml|php[0-9]?|phps)$
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "no-referrer-when-downgrade"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+
+  # Cache control for CSS/JS files
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, must-revalidate, max-age=3600"
+  </FilesMatch>
+
   # Uncomment and tailor CSP after verifying front-end needs
   # Header always set Content-Security-Policy "default-src 'self' data: blob:; img-src 'self' data: blob: *; media-src 'self' data: blob: *; frame-ancestors 'self'"
 </IfModule>
@@ -76,10 +82,10 @@ RewriteRule ^(themes|includes|sources|langs|src)/.*\.(php|phtml|php[0-9]?|phps)$
   ExpiresByType application/xml "access plus 1 seconds"
   ExpiresByType application/rss+xml "access plus 1 seconds"
   ExpiresByType application/json "access plus 1 seconds"
-  ExpiresByType text/css "access plus 1 week"
-  ExpiresByType text/javascript "access plus 1 week"
-  ExpiresByType application/javascript "access plus 1 week"
-  ExpiresByType application/x-javascript "access plus 1 week"
+  ExpiresByType text/css "access plus 1 hour"
+  ExpiresByType text/javascript "access plus 1 hour"
+  ExpiresByType application/javascript "access plus 1 hour"
+  ExpiresByType application/x-javascript "access plus 1 hour"
   ExpiresByType image/x-ico "access plus 1 year"
   ExpiresByType image/x-icon "access plus 1 year"
   ExpiresByType application/pdf "access plus 1 month"
